@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#10090d">
+    <title>Mafia — Shadow Conflict</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+    <main class="app">
+        <header class="topbar">
+            <a class="brand" href="/">M<span>●</span>FIA</a>
+            <span class="online-label"><i></i> MULTIPLAYER</span>
+        </header>
+
+        <section id="hero" class="hero">
+            <p class="eyebrow">UNE VILLE. DIX JOUEURS. UN TRAÎTRE ?</p>
+            <h1>SHADOW <span>CONFLICT</span></h1>
+            <p class="subtitle">
+                La nuit cache la vérité. Le jour révèle les suspects.
+            </p>
+        </section>
+
+        <section id="entry" class="panel">
+            <div class="section-heading">
+                <span class="number">01</span>
+                <div>
+                    <h2>Rejoindre la ville</h2>
+                    <p>Entre ton nom pour commencer.</p>
+                </div>
+            </div>
+
+            <label for="playerName">Nom du joueur</label>
+            <input id="playerName" maxlength="20" placeholder="Ex. Anass" autocomplete="nickname">
+
+            <label for="roomCode">Code de la ville <span>(si tu rejoins)</span></label>
+            <input id="roomCode" maxlength="6" placeholder="Ex. A1B2C3" autocomplete="off">
+
+            <button id="createBtn" class="button primary">
+                Créer une ville
+            </button>
+            <button id="joinBtn" class="button secondary">
+                Rejoindre une ville
+            </button>
+
+            <p id="message" class="message" role="status"></p>
+        </section>
+
+        <section id="lobby" class="panel hidden">
+            <div class="lobby-top">
+                <div>
+                    <p class="eyebrow">SALLE D'ATTENTE</p>
+                    <h2>La ville se réveille</h2>
+                </div>
+                <div class="room-code">
+                    <small>CODE DE LA VILLE</small>
+                    <strong id="currentCode">------</strong>
+                    <button id="copyBtn" class="copy-button">Copier le lien</button>
+                </div>
+            </div>
+
+            <div class="player-summary">
+                <span>Joueurs connectés</span>
+                <strong id="playerCount">1 / 10</strong>
+            </div>
+
+            <div class="progress-track">
+                <div id="progressBar" class="progress-bar"></div>
+            </div>
+
+            <div id="playersList" class="players-list"></div>
+
+            <p id="lobbyMessage" class="message" role="status">
+                En attente des autres joueurs...
+            </p>
+
+            <button id="startBtn" class="button primary" hidden disabled>
+                🚀 START GAME
+            </button>
+
+            <div class="rules-note">
+                <strong>Règle de la ville</strong>
+                <p>Les rôles seront distribués secrètement au début de la partie.</p>
+            </div>
+
+            <button id="leaveBtn" class="button secondary">
+                Quitter la ville
+            </button>
+        </section>
+
+        <section id="game" class="hidden" dir="rtl" lang="ar">
+            <div class="panel phase-panel">
+                <div id="phaseBadge" class="phase-badge">—</div>
+                <p id="phaseSub" class="phase-sub"></p>
+                <div class="progress-track">
+                    <div id="gameProgress" class="progress-bar"></div>
+                </div>
+                <p id="progressText" class="phase-sub small"></p>
+            </div>
+
+            <button id="roleCard" class="role-card pulse" type="button" aria-expanded="false">
+                <small id="roleHint">دورك السري</small>
+                <strong id="roleName">اضغط باش تشوف دورك</strong>
+                <span id="roleDesc">تأكد ما كيشوفك حد 👀</span>
+                <em id="roleTeam"></em>
+            </button>
+
+            <div id="actionPanel" class="panel"></div>
+
+            <div id="resultsPanel" class="panel hidden">
+                <h2>🕵️ معلوماتي السرية</h2>
+                <ul id="resultsList" class="log-list"></ul>
+            </div>
+
+            <div id="chatPanel" class="panel hidden">
+                <h2>💬 النقاش</h2>
+                <div id="chatBox" class="chat-box"></div>
+                <div class="chat-row">
+                    <input id="chatInput" maxlength="200" placeholder="كتب هنا..." autocomplete="off">
+                    <button id="chatSend" class="button primary" type="button">إرسال</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>👥 اللاعبين</h2>
+                <div id="gamePlayers" class="players-list"></div>
+            </div>
+
+            <div class="panel">
+                <h2>📜 سجل المدينة</h2>
+                <ul id="logList" class="log-list"></ul>
+            </div>
+
+            <div id="hostControls" class="panel hidden">
+                <h2>👑 تحكم المضيف</h2>
+                <button id="forceBtn" class="button secondary hidden" type="button">⏭️ كمّل المرحلة بلا ما تسناو</button>
+                <button id="resetBtn" class="button primary hidden" type="button">🔁 لعبة جديدة</button>
+            </div>
+
+            <button id="gameLeaveBtn" class="button secondary" type="button">خروج من اللعبة</button>
+        </section>
+
+        <footer>
+            <span>MAFIA: SHADOW CONFLICT</span>
+            <span>TRUST NO ONE.</span>
+        </footer>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/app.js"></script>
+</body>
+
+</html>
