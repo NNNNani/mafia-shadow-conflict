@@ -8,7 +8,8 @@
     "dev": "MIN_PLAYERS=3 node --watch server.js",
     "build:css": "npx tailwindcss@3.4.17 -i ./styles/input.css -o ./public/css/app.css --minify",
     "watch:css": "npx tailwindcss@3.4.17 -i ./styles/input.css -o ./public/css/app.css --watch",
-    "test": "node --test"
+    "test": "node --test",
+    "test:e2e": "node tests/e2e/run.mjs"
   },
   "repository": {
     "type": "git",

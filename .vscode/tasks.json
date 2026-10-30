@@ -1,0 +1,27 @@
+{
+  // Ctrl+Shift+P -> "Tasks: Run Task" (or "Tasks: Run Test Task") -> choose a task.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Tests des règles (npm test)",
+      "type": "npm",
+      "script": "test",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tests navigateur (npm run test:e2e)",
+      "type": "npm",
+      "script": "test:e2e",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Lancer le jeu (npm start)",
+      "type": "npm",
+      "script": "start",
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

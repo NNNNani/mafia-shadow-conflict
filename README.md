@@ -147,19 +147,37 @@ Le détail de chaque événement (émetteur, payload, validation, destinataires,
 ## Tests
 
 ```bash
-npm test                  # 13 tests unitaires des règles (aucune dépendance)
+npm test                  # 13 tests des règles, aucune installation nécessaire
+npm run test:e2e          # tests navigateur : démarre ses propres serveurs, puis les arrête
+npm run test:e2e -- fullGame   # une seule suite (fullGame, protocol ou bigGame)
 ```
 
-Tests de bout en bout (Playwright, à installer à part : `npm i -D playwright && npx playwright install chromium`) :
+Les tests navigateur ont besoin de Playwright, à installer une seule fois :
 
 ```bash
-TIME_SCALE=0.25 PORT=3100 npm start
-BASE_URL=http://localhost:3100 node tests/e2e/fullGame.mjs    # partie complète, 5 navigateurs
-MIN_PLAYERS=3 PORT=3101 npm start
-BASE_URL=http://localhost:3101 node tests/e2e/protocol.mjs    # 22 cas invalides ou hors ordre
+npm i -D playwright
+npx playwright install chromium
 ```
 
-`fullGame.mjs` vérifie : nom en double refusé, chat du salon (HTML affiché en texte), lancement bloqué tant que tout le monde n'est pas prêt, chat des loups invisible pour les autres, le Détective démasque le loup en privé, mort de la nuit, rechargement de page sans perte de rôle, mort muet au village, vote, victoire des Villageois, retour au salon. Un joueur joue sur un écran de téléphone (390 px).
+| Suite | Ce qu'elle vérifie |
+| --- | --- |
+| `tests/engine.test.js` | règles : distribution des rôles, attaque des loups, protection du Docteur, enquête, vote et égalité, victoire, droits du chat, aucune fuite d'information |
+| `tests/e2e/fullGame.mjs` | partie complète avec 5 navigateurs (dont un écran de téléphone) : nom en double refusé, HTML affiché comme texte, chat des loups privé, enquête privée, rechargement sans perte de rôle, mort muet, vote, victoire, retour au salon |
+| `tests/e2e/protocol.mjs` | 22 requêtes invalides ou dans le mauvais ordre, toutes refusées proprement |
+| `tests/e2e/bigGame.mjs` | partie à 22 joueurs (1 navigateur + 21 bots) jusqu'à la victoire |
+
+### Dans VS Code
+
+- **Terminal** (`` Ctrl+` ``) : tape `npm test` ou `npm run test:e2e`. Ces commandes marchent aussi sous Windows (PowerShell).
+- **Tâches** : `Ctrl+Shift+P` → « Tasks: Run Test Task » → choisis la tâche (fichier `.vscode/tasks.json`).
+- **Débogage** : onglet Exécuter et déboguer (`Ctrl+Shift+D`) → « Lancer le serveur (debug) » ou « Tests des règles (debug) », puis `F5`. Les points d'arrêt fonctionnent dans `server/*.js`.
+- **Panneau Tests (fiole)** : installe l'extension « Node.js Test Runner » (connor4312.nodejs-testing) pour voir et lancer chaque test de `engine.test.js` un par un.
+
+Variables d'environnement sous Windows PowerShell (pour lancer le serveur à la main) :
+
+```powershell
+$env:MIN_PLAYERS="3"; npm start
+```
 
 ## Corrigé par rapport au starter
 
