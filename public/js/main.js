@@ -24,9 +24,9 @@ const router = createRouter(
 // ------------------------------------------------------------- connection status
 
 const CONNECTION_LABELS = {
-  connecting: ["Connexion…", "bg-white/5 text-slate-400"],
-  online: ["● En ligne", "bg-emerald-400/10 text-emerald-300"],
-  offline: ["● Hors ligne — reconnexion…", "bg-blood-500/15 text-blood-400"],
+  connecting: ["جارٍ الاتصال…", "bg-white/5 text-slate-400"],
+  online: ["● متصل", "bg-emerald-400/10 text-emerald-300"],
+  offline: ["● غير متصل — إعادة الاتصال…", "bg-blood-500/15 text-blood-400"],
 };
 
 function renderConnection(status) {
@@ -49,7 +49,7 @@ connection.on(EVENTS.ROOM_STATE, (room) => {
   const phaseChanged = previous?.phase !== room.phase;
   store.set({
     room,
-    // On a new phase, open the most useful chat tab (e.g. Mafia at night).
+    // On a new phase, open the most useful chat tab (e.g. the wolves' tab at night).
     activeChannel: phaseChanged ? defaultChannel(room) : store.get().activeChannel,
   });
 });

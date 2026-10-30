@@ -26,7 +26,7 @@ export function createStore(initialState) {
 export const initialState = {
   connection: "connecting", // "connecting" | "online" | "offline"
   room: null, // last room:state received from the server
-  chat: { lobby: [], village: [], mafia: [], dead: [], system: [] },
+  chat: { lobby: [], village: [], wolves: [], dead: [], system: [] },
   unread: {}, // channel -> number of unseen messages
   activeChannel: null, // chat tab the player is looking at
 };

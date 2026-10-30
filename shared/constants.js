@@ -56,14 +56,14 @@ export const GAME_PHASES = Object.freeze([
 export const CHANNELS = Object.freeze({
   LOBBY: "lobby",
   VILLAGE: "village",
-  MAFIA: "mafia",
+  WOLVES: "wolves",
   DEAD: "dead",
   SYSTEM: "system",
 });
 
 export const TEAMS = Object.freeze({
-  MAFIA: "mafia",
-  CITY: "city",
+  WOLVES: "wolves",
+  VILLAGE: "village",
 });
 
 export const LIMITS = Object.freeze({

@@ -18,7 +18,7 @@ function safe(handler) {
       reply({ ok: true, data: (await handler(body)) ?? null });
     } catch (error) {
       if (!(error instanceof GameError)) console.error("[handler]", error);
-      reply({ ok: false, error: error instanceof GameError ? error.message : "Erreur serveur." });
+      reply({ ok: false, error: error instanceof GameError ? error.message : "خطأ في الخادم." });
     }
   };
 }
@@ -30,7 +30,7 @@ export function registerHandlers(io, store, flow, out) {
     // Same session opened in a second tab: the old tab is disconnected.
     if (player.socketId && player.socketId !== socket.id) {
       const old = io.sockets.sockets.get(player.socketId);
-      old?.emit(EVENTS.NOTICE, { text: "Session ouverte dans un autre onglet.", level: "error" });
+      old?.emit(EVENTS.NOTICE, { text: "تم فتح الجلسة في تبويب آخر.", level: "error" });
       old?.disconnect(true);
     }
     clearTimeout(player.removalTimer);
@@ -54,7 +54,7 @@ export function registerHandlers(io, store, flow, out) {
   function removeFromRoom(room, player) {
     store.removePlayer(room, player.id);
     if (room.players.length === 0) return store.delete(room);
-    out.announce(room, `👋 ${player.name} a quitté la ville.`);
+    out.announce(room, `👋 ${player.name} غادر القرية.`);
     out.state(room);
   }
 
@@ -70,7 +70,10 @@ export function registerHandlers(io, store, flow, out) {
 
     player.connected = false;
     player.socketId = null;
-    if (room.hostId === player.id) store.reassignHost(room);
+    // A refresh must not cost the host their badge. In the lobby the badge moves
+    // when the seat is freed (removePlayer); during a game the host keeps it, and
+    // only on the end screen (where "new game" needs a host) it moves right away.
+    if (room.hostId === player.id && room.phase === PHASES.ENDED) store.reassignHost(room);
 
     if (room.phase === PHASES.LOBBY) {
       // Keep the seat for a while in case it is just a page refresh.
@@ -78,7 +81,7 @@ export function registerHandlers(io, store, flow, out) {
         if (!player.connected && store.get(room.code)) removeFromRoom(room, player);
       }, LOBBY_GRACE_MS);
     } else {
-      out.announce(room, `📡 ${player.name} s'est déconnecté.`);
+      out.announce(room, `📡 انقطع اتصال ${player.name}.`);
     }
     flow.afterPresenceChange(room);
     scheduleCleanupIfEmpty(room);
@@ -96,7 +99,7 @@ export function registerHandlers(io, store, flow, out) {
     function current() {
       const room = store.get(socket.data.roomCode);
       const player = room?.players.find((p) => p.id === socket.data.playerId);
-      if (!room || !player) throw new GameError("Tu n'es dans aucune ville.");
+      if (!room || !player) throw new GameError("أنت لست في أي قرية.");
       return { room, player };
     }
 
@@ -131,19 +134,19 @@ export function registerHandlers(io, store, flow, out) {
       leaveCurrentRoom();
       const { room, player } = store.join(code, name);
       const result = enter(room, player);
-      out.announce(room, `🚪 ${player.name} est arrivé en ville.`);
+      out.announce(room, `🚪 وصل ${player.name} إلى القرية.`);
       return result;
     }));
 
     socket.on(EVENTS.ROOM_RESUME, safe(({ sessionId }) => {
       const found = store.resume(sessionId);
-      if (!found) throw new GameError("Session expirée.");
+      if (!found) throw new GameError("انتهت صلاحية الجلسة.");
       const { room, player } = found;
       if (socket.data.playerId && socket.data.playerId !== player.id) leaveCurrentRoom();
       const wasOffline = !player.connected;
       const result = enter(room, player);
       if (wasOffline && room.phase !== PHASES.LOBBY) {
-        out.announce(room, `🔌 ${player.name} est de retour.`);
+        out.announce(room, `🔌 عاد ${player.name}.`);
       }
       flow.afterPresenceChange(room);
       return result;
@@ -155,15 +158,15 @@ export function registerHandlers(io, store, flow, out) {
 
     socket.on(EVENTS.ROOM_SETTINGS, safe(({ settings }) => {
       const { room, player } = current();
-      if (player.id !== room.hostId) throw new GameError("Seul l'hôte peut régler la partie.");
-      if (room.phase !== PHASES.LOBBY) throw new GameError("Réglages verrouillés pendant la partie.");
-      if (!settings || typeof settings !== "object") throw new GameError("Réglages invalides.");
+      if (player.id !== room.hostId) throw new GameError("المضيف وحده يستطيع تغيير الإعدادات.");
+      if (room.phase !== PHASES.LOBBY) throw new GameError("الإعدادات مقفلة أثناء اللعب.");
+      if (!settings || typeof settings !== "object") throw new GameError("إعدادات غير صالحة.");
 
       for (const [key, [min, max]] of Object.entries(SETTINGS_BOUNDS)) {
         if (settings[key] === undefined) continue;
         const value = Math.round(Number(settings[key]));
         if (!Number.isFinite(value) || value < min || value > max) {
-          throw new GameError(`Valeur invalide pour ${key} (${min}–${max}).`);
+          throw new GameError(`قيمة غير صالحة لـ ${key} (${min}–${max}).`);
         }
         room.settings[key] = value;
       }
@@ -175,7 +178,7 @@ export function registerHandlers(io, store, flow, out) {
 
     socket.on(EVENTS.PLAYER_READY, safe(({ ready }) => {
       const { room, player } = current();
-      if (room.phase !== PHASES.LOBBY) throw new GameError("La partie a déjà commencé.");
+      if (room.phase !== PHASES.LOBBY) throw new GameError("اللعبة بدأت بالفعل.");
       player.ready = player.id === room.hostId ? true : Boolean(ready);
       out.state(room);
     }));
@@ -191,12 +194,9 @@ export function registerHandlers(io, store, flow, out) {
       dropOfflineLobbyPlayers(room);
     }));
 
-    socket.on(EVENTS.NIGHT_ACTION, safe(({ targetId, kidnapId }) => {
+    socket.on(EVENTS.NIGHT_ACTION, safe(({ targetId }) => {
       const { room, player } = current();
-      flow.submitNightAction(room, player, {
-        targetId: typeof targetId === "string" ? targetId : null,
-        kidnapId: typeof kidnapId === "string" ? kidnapId : null,
-      });
+      flow.submitNightAction(room, player, { targetId: typeof targetId === "string" ? targetId : null });
     }));
 
     socket.on(EVENTS.DAY_SKIP, safe(() => {
@@ -211,7 +211,7 @@ export function registerHandlers(io, store, flow, out) {
 
     socket.on(EVENTS.CHAT_SEND, safe(({ channel, text }) => {
       const { room, player } = current();
-      if (!Object.values(CHANNELS).includes(channel)) throw new GameError("Canal inconnu.");
+      if (!Object.values(CHANNELS).includes(channel)) throw new GameError("قناة غير معروفة.");
       const message = addPlayerMessage(room, player, channel, text);
       out.chat(room, message);
     }));

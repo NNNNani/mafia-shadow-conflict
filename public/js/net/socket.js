@@ -12,9 +12,9 @@ export function createConnection() {
     try {
       response = await socket.timeout(TIMEOUT_MS).emitWithAck(event, payload);
     } catch {
-      throw new Error("Le serveur ne répond pas. Vérifie ta connexion.");
+      throw new Error("الخادم لا يستجيب. تحقّق من اتصالك.");
     }
-    if (!response?.ok) throw new Error(response?.error || "Action refusée.");
+    if (!response?.ok) throw new Error(response?.error || "تم رفض الطلب.");
     return response.data;
   }
 

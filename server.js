@@ -34,13 +34,13 @@ const flow = createGameFlow(out);
 registerHandlers(io, store, flow, out);
 
 server.listen(PORT, HOST, () => {
-  console.log("Mafia: Shadow Conflict est lancé !");
-  console.log(`  Sur cet ordinateur : http://localhost:${PORT}`);
+  console.log("🐺 Loup-Garou — اللعبة تعمل!");
+  console.log(`  على هذا الحاسوب: http://localhost:${PORT}`);
   const urls = lanUrls(PORT);
   if (urls.length) {
-    console.log("  Pour les autres joueurs (même Wi-Fi) :");
+    console.log("  للاعبين الآخرين (نفس شبكة الـWi-Fi):");
     urls.forEach((url) => console.log(`    ${url}`));
   } else {
-    console.log("  Aucun réseau détecté : connecte cet ordinateur au Wi-Fi pour jouer à plusieurs.");
+    console.log("  لم يتم العثور على شبكة: صِل هذا الحاسوب بالـWi-Fi للعب مع الآخرين.");
   }
 });

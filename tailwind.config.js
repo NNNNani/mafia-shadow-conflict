@@ -1,4 +1,4 @@
-/** Tailwind design tokens for Mafia: Shadow Conflict. Build with: npm run build:css */
+/** Tailwind design tokens for Loup-Garou. Build with: npm run build:css */
 export default {
   content: ["./public/**/*.{html,js}"],
   theme: {
@@ -27,8 +27,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ["Cinzel", "Georgia", "serif"],
-        sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["Reem Kufi", "Cairo", "Tahoma", "sans-serif"],
+        sans: ["Cairo", "Tahoma", "system-ui", "sans-serif"],
       },
       boxShadow: {
         glow: "0 0 0 1px rgba(230,189,98,.35), 0 8px 30px -8px rgba(230,189,98,.35)",

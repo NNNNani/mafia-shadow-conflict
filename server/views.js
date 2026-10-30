@@ -3,7 +3,7 @@
 import { CHANNELS, PHASES } from "../shared/constants.js";
 import { FIXED_PHASE_SECONDS, MAX_PLAYERS, MIN_PLAYERS } from "./config.js";
 import { abilityOf, canVote, countVotes, validateNightAction } from "./engine.js";
-import { isMafia, roleInfo } from "./roles.js";
+import { isWolf, roleInfo } from "./roles.js";
 import { writeBlocker } from "./chat.js";
 
 /** Is `viewer` allowed to know the role of `player`? */
@@ -12,7 +12,7 @@ function canSeeRole(room, viewer, player) {
   if (room.phase === PHASES.ENDED) return true;
   if (viewer.id === player.id) return true;
   if (!player.alive && room.settings.revealRolesOnDeath) return true;
-  return viewer.alive && isMafia(viewer) && isMafia(player);
+  return viewer.alive && isWolf(viewer) && isWolf(player);
 }
 
 function publicPlayer(room, viewer, player) {
@@ -24,7 +24,6 @@ function publicPlayer(room, viewer, player) {
     ready: player.ready,
     isHost: player.id === room.hostId,
     alive: player.alive,
-    silenced: player.silenced,
     death: player.death,
     role: canSeeRole(room, viewer, player) ? roleInfo(player.role) : null,
   };
@@ -43,18 +42,14 @@ function nightView(room, me) {
     ability,
     targetIds,
     myAction: room.nightActions[me.id] || null,
-    kidnapIds: null,
     teamPicks: null,
   };
 
-  if (me.role === "boss") {
-    view.kidnapIds = room.players.filter((p) => p.alive && !isMafia(p)).map((p) => p.id);
-  }
-  if (isMafia(me)) {
-    // Mafia members see each other's picks to coordinate.
+  if (isWolf(me)) {
+    // Werewolves see each other's picks to agree on one victim.
     view.teamPicks = Object.fromEntries(
       room.players
-        .filter((p) => p.alive && isMafia(p) && room.nightActions[p.id])
+        .filter((p) => p.alive && isWolf(p) && room.nightActions[p.id])
         .map((p) => [p.id, room.nightActions[p.id].targetId])
     );
   }
@@ -63,7 +58,7 @@ function nightView(room, me) {
 
 function chatRights(room, me) {
   return Object.fromEntries(
-    [CHANNELS.LOBBY, CHANNELS.VILLAGE, CHANNELS.MAFIA, CHANNELS.DEAD].map((channel) => [
+    [CHANNELS.LOBBY, CHANNELS.VILLAGE, CHANNELS.WOLVES, CHANNELS.DEAD].map((channel) => [
       channel,
       { canWrite: !writeBlocker(room, me, channel), reason: writeBlocker(room, me, channel) },
     ])
@@ -97,7 +92,6 @@ export function roomView(room, me) {
       isHost: me.id === room.hostId,
       role: me.role ? roleInfo(me.role) : null,
       alive: me.alive,
-      silenced: me.silenced,
       canVote: room.phase === PHASES.VOTE && canVote(me),
       myVote: room.votes[me.id] || null,
       night: nightView(room, me),

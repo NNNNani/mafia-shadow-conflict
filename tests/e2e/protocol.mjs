@@ -44,7 +44,7 @@ const results = await page.evaluate(async () => {
   await expectRefused("non-host changes settings", b, "room:settings", { settings: { nightSeconds: 20 } });
   await expectRefused("settings out of bounds", a, "room:settings", { settings: { nightSeconds: 9999 } });
   await expectRefused("unknown chat channel", b, "chat:send", { channel: "admin", text: "hi" });
-  await expectRefused("mafia channel from the lobby", b, "chat:send", { channel: "mafia", text: "hi" });
+  await expectRefused("wolves channel from the lobby", b, "chat:send", { channel: "wolves", text: "hi" });
   await expectRefused("empty message", b, "chat:send", { channel: "lobby", text: "    " });
   await expectRefused("resume with a fake session", c, "room:resume", { sessionId: "not-a-session" });
 

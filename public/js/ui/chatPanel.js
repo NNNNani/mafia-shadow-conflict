@@ -5,10 +5,10 @@ import { h, mount } from "./dom.js";
 import { avatar, toast } from "./components.js";
 
 const CHANNEL_INFO = {
-  [CHANNELS.LOBBY]: { label: "Salon", icon: "🏙️" },
-  [CHANNELS.VILLAGE]: { label: "Village", icon: "☀️" },
-  [CHANNELS.MAFIA]: { label: "Mafia", icon: "🔫" },
-  [CHANNELS.DEAD]: { label: "Cimetière", icon: "🪦" },
+  [CHANNELS.LOBBY]: { label: "الردهة", icon: "🏡" },
+  [CHANNELS.VILLAGE]: { label: "القرية", icon: "☀️" },
+  [CHANNELS.WOLVES]: { label: "الذئاب", icon: "🐺" },
+  [CHANNELS.DEAD]: { label: "المقبرة", icon: "🪦" },
 };
 
 /** Channels shown as tabs for this player right now. */
@@ -16,19 +16,19 @@ export function visibleChannels(room) {
   if (room.phase === PHASES.LOBBY || room.phase === PHASES.ENDED) return [CHANNELS.LOBBY];
   const channels = [CHANNELS.VILLAGE];
   const myRole = room.me.role;
-  if (myRole?.team === "mafia" && room.me.alive) channels.push(CHANNELS.MAFIA);
+  if (myRole?.team === "wolves" && room.me.alive) channels.push(CHANNELS.WOLVES);
   if (!room.me.alive) channels.push(CHANNELS.DEAD);
   return channels;
 }
 
-/** The tab to open by default: Mafia at night for the Mafia, otherwise Salon/Village. */
+/** The tab to open by default: the wolves' tab at night for werewolves, otherwise lobby/village. */
 export function defaultChannel(room) {
   const channels = visibleChannels(room);
-  if (room.phase === PHASES.NIGHT && channels.includes(CHANNELS.MAFIA)) return CHANNELS.MAFIA;
+  if (room.phase === PHASES.NIGHT && channels.includes(CHANNELS.WOLVES)) return CHANNELS.WOLVES;
   return channels[0];
 }
 
-/** Messages of a tab. System announcements appear in the Salon and Village tabs. */
+/** Messages of a tab. System announcements appear in the lobby and village tabs. */
 function messagesFor(chat, channel) {
   if (channel === CHANNELS.LOBBY || channel === CHANNELS.VILLAGE) {
     return [...chat[channel], ...chat[CHANNELS.SYSTEM]].sort((a, b) => a.ts - b.ts);
@@ -37,7 +37,7 @@ function messagesFor(chat, channel) {
 }
 
 function formatTime(ts) {
-  return new Date(ts).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return new Date(ts).toLocaleTimeString("ar-MA", { hour: "2-digit", minute: "2-digit" });
 }
 
 function messageBubble(message, myId) {
@@ -45,7 +45,7 @@ function messageBubble(message, myId) {
     return h("li", { class: "my-2 text-center text-xs italic text-gold-300/90" }, message.text);
   }
   const mine = message.author.id === myId;
-  const tint = message.channel === CHANNELS.MAFIA
+  const tint = message.channel === CHANNELS.WOLVES
     ? "bg-blood-500/15 border-blood-500/30"
     : message.channel === CHANNELS.DEAD
       ? "bg-slate-500/10 border-slate-400/20"
@@ -61,10 +61,10 @@ function messageBubble(message, myId) {
       h(
         "div",
         { class: `mb-0.5 flex gap-2 text-[11px] ${mine ? "justify-end" : ""}` },
-        h("span", { class: "font-semibold text-slate-200" }, mine ? "Toi" : message.author.name),
+        h("span", { class: "font-semibold text-slate-200" }, mine ? "أنت" : message.author.name),
         h("time", { class: "text-slate-500", datetime: new Date(message.ts).toISOString() }, formatTime(message.ts))
       ),
-      h("p", { class: "whitespace-pre-wrap break-words text-sm text-slate-100" }, message.text)
+      h("p", { class: "whitespace-pre-wrap break-words text-sm text-slate-100", dir: "auto" }, message.text)
     )
   );
 }
@@ -76,12 +76,12 @@ function messageBubble(message, myId) {
 export function createChatPanel({ store, api }) {
   const tabs = h("div", { class: "flex gap-1 overflow-x-auto border-b border-white/10 p-2", role: "tablist" });
   const list = h("ul", { class: "scroll-thin h-72 overflow-y-auto px-3 py-2 lg:h-[26rem]", "aria-live": "polite" });
-  const input = h("input", { class: "input py-2 text-sm", maxlength: "300", "aria-label": "Message" });
-  const sendButton = h("button", { class: "btn-primary px-3 py-2", type: "submit", "aria-label": "Envoyer" }, "➤");
+  const input = h("input", { class: "input py-2 text-sm", maxlength: "300", "aria-label": "رسالة", dir: "rtl" });
+  const sendButton = h("button", { class: "btn-primary px-3 py-2", type: "submit", "aria-label": "إرسال" }, "➤");
   const form = h("form", { class: "flex gap-2 border-t border-white/10 p-2" }, input, sendButton);
   const el = h(
     "section",
-    { class: "card flex flex-col overflow-hidden", "aria-label": "Discussion" },
+    { class: "card flex flex-col overflow-hidden", "aria-label": "الدردشة" },
     tabs,
     list,
     form
@@ -129,7 +129,7 @@ export function createChatPanel({ store, api }) {
           },
           `${info.icon} ${info.label}`,
           count > 0 && channel !== active
-            ? h("span", { class: "chip bg-blood-500 text-white", "aria-label": `${count} non lus` }, count)
+            ? h("span", { class: "chip bg-blood-500 text-white", "aria-label": `${count} غير مقروءة` }, count)
             : null
         );
       })
@@ -143,7 +143,7 @@ export function createChatPanel({ store, api }) {
     renderedKey = key;
 
     const nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
-    const empty = h("li", { class: "py-10 text-center text-sm text-slate-500" }, "Aucun message pour l'instant.");
+    const empty = h("li", { class: "py-10 text-center text-sm text-slate-500" }, "لا توجد رسائل بعد.");
     mount(list, messages.length ? messages.map((m) => messageBubble(m, state.room.me.id)) : empty);
     if (nearBottom || messages.at(-1)?.author?.id === state.room.me.id) list.scrollTop = list.scrollHeight;
   }
@@ -163,7 +163,7 @@ export function createChatPanel({ store, api }) {
     const rights = room.me.chat[active];
     input.disabled = !rights?.canWrite;
     sendButton.disabled = !rights?.canWrite;
-    input.placeholder = rights?.canWrite ? "Écris un message…" : rights?.reason || "Lecture seule";
+    input.placeholder = rights?.canWrite ? "اكتب رسالة…" : rights?.reason || "قراءة فقط";
   }
 
   return { el, update };

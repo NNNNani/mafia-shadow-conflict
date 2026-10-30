@@ -2,7 +2,7 @@
 // cut can reconnect to the same seat. sessionStorage is per tab: two tabs = two players.
 // It only stores an id; all game data comes from the server.
 
-const KEY = "mafia.session";
+const KEY = "loupgarou.session";
 
 export function saveSession(session) {
   try {

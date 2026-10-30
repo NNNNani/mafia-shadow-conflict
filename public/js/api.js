@@ -44,7 +44,7 @@ export function createApi(connection, store) {
     updateSettings: (settings) => request(EVENTS.ROOM_SETTINGS, { settings }),
     startGame: () => request(EVENTS.GAME_START),
     restartGame: () => request(EVENTS.GAME_RESTART),
-    nightAction: (targetId, kidnapId = null) => request(EVENTS.NIGHT_ACTION, { targetId, kidnapId }),
+    nightAction: (targetId) => request(EVENTS.NIGHT_ACTION, { targetId }),
     skipDiscussion: () => request(EVENTS.DAY_SKIP),
     vote: (targetId) => request(EVENTS.VOTE_CAST, { targetId }),
     sendChat: (channel, text) => request(EVENTS.CHAT_SEND, { channel, text }),

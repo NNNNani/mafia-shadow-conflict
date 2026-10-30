@@ -8,10 +8,9 @@ import { clearGameChannels } from "./chat.js";
 import { GameError } from "./rooms.js";
 
 const DEATH_TEXT = {
-  mafia: "a été assassiné cette nuit",
-  bodyguard: "est mort en protégeant quelqu'un",
-  vote: "a été éliminé par le village",
-  left: "a quitté la ville",
+  wolves: "افترسته الذئاب هذه الليلة",
+  vote: "أقصته القرية بالتصويت",
+  left: "غادر القرية",
 };
 
 /**
@@ -53,25 +52,25 @@ export function createGameFlow(out) {
   // ------------------------------------------------------------ start
 
   function startGame(room, requester) {
-    if (requester.id !== room.hostId) throw new GameError("Seul l'hôte peut lancer la partie.");
-    if (room.phase !== PHASES.LOBBY) throw new GameError("La partie a déjà commencé.");
+    if (requester.id !== room.hostId) throw new GameError("المضيف وحده يستطيع بدء اللعبة.");
+    if (room.phase !== PHASES.LOBBY) throw new GameError("اللعبة بدأت بالفعل.");
 
     const count = room.players.length;
-    if (count < MIN_PLAYERS) throw new GameError(`Il faut au moins ${MIN_PLAYERS} joueurs.`);
-    if (count > MAX_PLAYERS) throw new GameError(`${MAX_PLAYERS} joueurs maximum.`);
+    if (count < MIN_PLAYERS) throw new GameError(`يلزم ${MIN_PLAYERS} لاعبين على الأقل.`);
+    if (count > MAX_PLAYERS) throw new GameError(`الحد الأقصى ${MAX_PLAYERS} لاعباً.`);
 
     const offline = room.players.find((p) => !p.connected);
-    if (offline) throw new GameError(`${offline.name} est déconnecté.`);
+    if (offline) throw new GameError(`${offline.name} غير متصل.`);
 
     const notReady = room.players.find((p) => !p.ready);
-    if (notReady) throw new GameError(`${notReady.name} n'est pas prêt.`);
+    if (notReady) throw new GameError(`${notReady.name} ليس جاهزاً.`);
 
     engine.assignRoles(room, shuffle(buildRoleDeck(count)));
     room.journal = [];
     clearGameChannels(room);
     out.syncHistory(room);
 
-    log(room, "🎭 Les rôles ont été distribués en secret.");
+    log(room, "🎭 وُزّعت الأدوار سرّاً.");
     enterPhase(room, PHASES.ROLE_REVEAL, FIXED_PHASE_SECONDS.roleReveal, () => beginNight(room));
   }
 
@@ -79,7 +78,7 @@ export function createGameFlow(out) {
 
   function beginNight(room) {
     engine.prepareNight(room);
-    log(room, `🌙 La nuit n°${room.round} tombe sur la ville.`);
+    log(room, `🌙 حلّت الليلة رقم ${room.round} على القرية.`);
     enterPhase(room, PHASES.NIGHT, room.settings.nightSeconds, () => finishNight(room));
     if (engine.isNightComplete(room)) finishNight(room);
   }
@@ -99,20 +98,16 @@ export function createGameFlow(out) {
 
     privateResults.forEach((result) => out.privateResult(room, result));
 
-    log(room, "☀️ Le jour se lève.");
+    log(room, "☀️ طلع النهار.");
     if (report.deaths.length === 0) {
       log(room, report.attackBlocked
-        ? "🛡️ Une attaque a été déjouée cette nuit. Personne n'est mort."
-        : "😮‍💨 La nuit a été calme. Personne n'est mort.");
+        ? "💉 أنقذ الطبيب الضحية! لم يمت أحد هذه الليلة."
+        : "😮‍💨 مرّت الليلة بهدوء. لم يمت أحد.");
     }
     report.deaths.forEach(({ playerId, cause }) => {
       const victim = engine.findPlayer(room, playerId);
       log(room, `☠️ ${engine.describeDeath(room, victim)} ${DEATH_TEXT[cause]}.`);
     });
-    if (report.kidnappedId) {
-      const kidnapped = engine.findPlayer(room, report.kidnappedId);
-      log(room, `🤐 ${kidnapped.name} a été kidnappé : silence et pas de vote aujourd'hui.`);
-    }
     if (report.deaths.length) out.syncHistory(room);
 
     if (endIfWinner(room)) return;
@@ -122,19 +117,19 @@ export function createGameFlow(out) {
   // ------------------------------------------------------------ day
 
   function beginDiscussion(room) {
-    log(room, "💬 Débat ouvert : qui ment dans cette ville ?");
+    log(room, "💬 بدأ النقاش: من يكذب في هذه القرية؟");
     enterPhase(room, PHASES.DISCUSSION, room.settings.discussionSeconds, () => beginVote(room));
   }
 
   function skipDiscussion(room, player) {
-    if (player.id !== room.hostId) throw new GameError("Seul l'hôte peut passer au vote.");
-    if (room.phase !== PHASES.DISCUSSION) throw new GameError("Pas de débat en cours.");
+    if (player.id !== room.hostId) throw new GameError("المضيف وحده يستطيع الانتقال إلى التصويت.");
+    if (room.phase !== PHASES.DISCUSSION) throw new GameError("لا يوجد نقاش جارٍ.");
     beginVote(room);
   }
 
   function beginVote(room) {
     room.votes = {};
-    log(room, "🗳️ Le vote est ouvert. Choisissez qui éliminer.");
+    log(room, "🗳️ التصويت مفتوح. اختاروا من تريدون إقصاءه.");
     enterPhase(room, PHASES.VOTE, room.settings.voteSeconds, () => finishVote(room));
     if (engine.isVoteComplete(room)) finishVote(room);
   }
@@ -157,9 +152,9 @@ export function createGameFlow(out) {
       log(room, `⚖️ ${engine.describeDeath(room, target)} ${DEATH_TEXT.vote}.`);
       out.syncHistory(room);
     } else if (verdict.tie) {
-      log(room, "⚖️ Égalité : personne n'est éliminé aujourd'hui.");
+      log(room, "⚖️ تعادل في الأصوات: لن يُقصى أحد اليوم.");
     } else {
-      log(room, "⚖️ Aucun vote : personne n'est éliminé aujourd'hui.");
+      log(room, "⚖️ لا أصوات: لن يُقصى أحد اليوم.");
     }
 
     if (endIfWinner(room)) return;
@@ -173,9 +168,15 @@ export function createGameFlow(out) {
     if (!winner) return false;
 
     room.winner = winner;
-    log(room, winner === TEAMS.CITY
-      ? "🏆 La ville a gagné : la Mafia est démantelée !"
-      : "🏆 La Mafia a pris le contrôle de la ville !");
+    // "New game" needs a host who is here: hand the badge over if the host is offline.
+    const host = engine.findPlayer(room, room.hostId);
+    if (!host?.connected) {
+      const next = room.players.find((p) => p.connected);
+      if (next) room.hostId = next.id;
+    }
+    log(room, winner === TEAMS.VILLAGE
+      ? "🏆 فاز القرويون: تم القضاء على كل المستذئبين!"
+      : "🏆 فاز المستذئبون: سيطرت الذئاب على القرية!");
     enterPhase(room, PHASES.ENDED, null);
     out.syncHistory(room);
     return true;
@@ -199,13 +200,12 @@ export function createGameFlow(out) {
 
   /** Back to the lobby with the same players, after a game ended. */
   function restart(room, player) {
-    if (player.id !== room.hostId) throw new GameError("Seul l'hôte peut relancer.");
-    if (room.phase !== PHASES.ENDED) throw new GameError("La partie n'est pas terminée.");
+    if (player.id !== room.hostId) throw new GameError("المضيف وحده يستطيع إعادة اللعب.");
+    if (room.phase !== PHASES.ENDED) throw new GameError("اللعبة لم تنتهِ بعد.");
 
     room.players.forEach((p) => {
       p.role = null;
       p.alive = true;
-      p.silenced = false;
       p.death = null;
       p.results = [];
       p.ready = p.id === room.hostId;

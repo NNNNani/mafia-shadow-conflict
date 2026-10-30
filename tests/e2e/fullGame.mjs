@@ -1,4 +1,4 @@
-// End-to-end test: 5 real browser sessions play a full game through the UI.
+// End-to-end test: 5 real browser sessions play a full game through the Arabic UI.
 // Needs Playwright (npm i -D playwright && npx playwright install chromium).
 // Start the server first:  TIME_SCALE=0.25 PORT=3100 npm start
 // Then run:                BASE_URL=http://localhost:3100 node tests/e2e/fullGame.mjs
@@ -7,7 +7,9 @@ import assert from "node:assert/strict";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3100";
 const SHOTS = process.env.SHOTS_DIR || null;
-const NAMES = ["Alba", "Bruno", "Cyra", "Dario", "Elio"];
+const NAMES = ["Amine", "Badr", "Chama", "Driss", "Enzo"];
+const ROLE_NAMES = ["مستذئب", "المحقق", "الطبيب", "قروي"];
+const MESSAGE = 'input[aria-label="رسالة"]';
 
 const browser = await chromium.launch();
 const players = [];
@@ -26,140 +28,132 @@ async function open(name, width = 1280) {
   return { name, page };
 }
 
-const board = (page) => page.locator('ul[aria-label="Joueurs"]');
+const board = (page) => page.locator('ul[aria-label="اللاعبون"]');
 const card = (page, name) => board(page).locator("li").filter({ hasText: name }).first();
-const roleText = (page) => page.locator('section[aria-label="Mon rôle"]').innerText();
+const roleText = (page) => page.locator('section[aria-label="دوري"]').innerText();
+const say = async (p, text) => {
+  await p.page.fill(MESSAGE, text);
+  await p.page.press(MESSAGE, "Enter");
+};
 
 try {
   // ---------------------------------------------------------- lobby
   const host = await open(NAMES[0]);
-  await host.page.click("text=Créer une ville");
-  await host.page.waitForSelector("text=La ville se réveille");
+  await host.page.click("text=إنشاء قرية");
+  await host.page.waitForSelector("text=القرية تستيقظ");
   const code = (await host.page.locator("strong.font-display").first().innerText()).trim();
   log("room created", code);
   players.push(host);
 
   for (const name of NAMES.slice(1)) {
-    const p = await open(name, name === "Elio" ? 390 : 1280); // Elio plays on a phone-sized screen
+    const p = await open(name, name === "Enzo" ? 390 : 1280); // Enzo plays on a phone-sized screen
     await p.page.fill("#roomCode", code);
-    await p.page.click("text=Rejoindre");
-    await p.page.waitForSelector("text=La ville se réveille");
+    await p.page.click("text=انضمام");
+    await p.page.waitForSelector("text=القرية تستيقظ");
     players.push(p);
   }
 
-  // invalid join: duplicate name
-  const dup = await open("alba");
+  const dup = await open("amine");
   await dup.page.fill("#roomCode", code);
-  await dup.page.click("text=Rejoindre");
-  await dup.page.waitForSelector("text=Ce nom est déjà pris");
+  await dup.page.click("text=انضمام");
+  await dup.page.waitForSelector("text=هذا الاسم مستخدم");
   log("duplicate name refused ✓");
   await dup.page.context().close();
 
-  // start is blocked until everyone is ready
-  const start = host.page.locator("text=🚀 Lancer la partie");
+  const start = host.page.locator("text=🚀 ابدأ اللعبة");
   assert.equal(await start.isDisabled(), true);
-  for (const p of players.slice(1)) await p.page.click("text=✓ Je suis prêt");
+  for (const p of players.slice(1)) await p.page.click("text=✓ أنا جاهز");
 
-  // lobby chat
-  await players[1].page.fill('input[aria-label="Message"]', "Salut la ville <b>!</b>");
-  await players[1].page.press('input[aria-label="Message"]', "Enter");
-  await host.page.waitForSelector("text=Salut la ville <b>!</b>");
+  await say(players[1], "مرحبا بالجميع <b>!</b>");
+  await host.page.waitForSelector("text=مرحبا بالجميع <b>!</b>");
   log("lobby chat delivered, HTML shown as text ✓");
   await shot(host.page, "1-lobby");
 
   await host.page.waitForFunction(() => {
-    const b = [...document.querySelectorAll("button")].find((x) => x.textContent.includes("Lancer la partie"));
+    const b = [...document.querySelectorAll("button")].find((x) => x.textContent.includes("ابدأ اللعبة"));
     return b && !b.disabled;
   });
   await start.click();
 
   // ---------------------------------------------------------- roles
-  await host.page.waitForSelector("text=Ton rôle secret");
+  await host.page.waitForSelector("text=دورك السري");
   await shot(host.page, "2-role-reveal");
-  for (const p of players) p.role = (await roleText(p.page)).split("\n").find((l) => /Parrain|Mafieux|Détective|Médecin|Citoyen|Espion|Garde/.test(l));
-  for (const p of players) p.role = p.role.trim();
+  for (const p of players) {
+    p.role = (await roleText(p.page)).split("\n").map((l) => l.trim()).find((l) => ROLE_NAMES.includes(l));
+  }
   log("roles:", players.map((p) => `${p.name}=${p.role}`).join(", "));
-  const boss = players.find((p) => p.role === "Parrain");
-  const doctor = players.find((p) => p.role === "Médecin");
-  const detective = players.find((p) => p.role === "Détective");
-  const citizens = players.filter((p) => p.role === "Citoyen");
-  assert.ok(boss && doctor && detective && citizens.length === 2, "5-player deck");
+  const wolf = players.find((p) => p.role === "مستذئب");
+  const doctor = players.find((p) => p.role === "الطبيب");
+  const detective = players.find((p) => p.role === "المحقق");
+  const villagers = players.filter((p) => p.role === "قروي");
+  assert.ok(wolf && doctor && detective && villagers.length === 2, "5-player deck: 1 wolf, detective, doctor, 2 villagers");
 
   // ---------------------------------------------------------- night 1
-  await host.page.waitForSelector("text=Nuit · tour 1", { timeout: 15000 });
+  await host.page.waitForSelector("text=الليل · الجولة 1", { timeout: 15000 });
 
-  // Mafia chat: only the boss can read it.
-  await boss.page.fill('input[aria-label="Message"]', "secret mafia plan");
-  await boss.page.press('input[aria-label="Message"]', "Enter");
-  await boss.page.waitForSelector("text=secret mafia plan");
-  for (const p of players.filter((x) => x !== boss)) {
-    assert.equal(await p.page.locator("text=secret mafia plan").count(), 0, `${p.name} must not see Mafia chat`);
+  await say(wolf, "secret wolf plan");
+  await wolf.page.waitForSelector("text=secret wolf plan");
+  for (const p of players.filter((x) => x !== wolf)) {
+    assert.equal(await p.page.locator("text=secret wolf plan").count(), 0, `${p.name} must not see the wolves' chat`);
   }
-  log("Mafia chat private ✓");
+  log("wolves chat private ✓");
+  assert.equal(await villagers[0].page.locator(MESSAGE).isDisabled(), true);
 
-  // A citizen cannot write in the village at night.
-  assert.equal(await citizens[0].page.locator('input[aria-label="Message"]').isDisabled(), true);
-
-  const victim = citizens[0];
-  await card(boss.page, victim.name).click();
-  await boss.page.click("text=Confirmer");
-  await card(doctor.page, citizens[1].name).click();
-  await doctor.page.click("text=Confirmer");
+  const victim = villagers[0];
+  await card(wolf.page, victim.name).click();
+  await wolf.page.click("text=تأكيد");
+  await card(doctor.page, villagers[1].name).click();
+  await doctor.page.click("text=تأكيد");
   await shot(detective.page, "3-night-detective");
-  await card(detective.page, boss.name).click();
-  await detective.page.click("text=Confirmer");
+  await card(detective.page, wolf.name).click();
+  await detective.page.click("text=تأكيد");
 
-  // Detective gets a private result (the Parrain looks innocent).
-  await detective.page.waitForSelector("text=Résultat de l'enquête");
-  assert.match(await detective.page.locator('[role="dialog"]').innerText(), /innocent/);
-  await detective.page.click("text=Compris");
-  log("detective result private modal ✓");
+  await detective.page.waitForSelector("text=نتيجة التحقيق");
+  assert.match(await detective.page.locator('[role="dialog"]').innerText(), /مستذئب!/);
+  await detective.page.click("text=فهمت");
+  log("detective found the werewolf (private modal) ✓");
 
   // ---------------------------------------------------------- day 1
-  await host.page.waitForSelector(`text=/${victim.name}.*a été assassiné/`, { timeout: 15000 });
-  log(`${victim.name} died in the night ✓`);
+  await host.page.waitForSelector(`text=/${victim.name}.*افترسته الذئاب/`, { timeout: 15000 });
+  log(`${victim.name} killed by the werewolves ✓`);
   await shot(host.page, "4-dawn");
 
-  // Reconnection: the detective refreshes the page and gets the seat back.
   await detective.page.reload();
-  await detective.page.waitForSelector('section[aria-label="Mon rôle"]');
-  assert.match(await roleText(detective.page), /Détective/);
+  await detective.page.waitForSelector('section[aria-label="دوري"]');
+  assert.match(await roleText(detective.page), /المحقق/);
   log("refresh -> same seat and role ✓");
 
-  await host.page.waitForSelector("text=Débat ouvert", { timeout: 15000 });
-  await detective.page.fill('input[aria-label="Message"]', `${boss.name} est suspect.`);
-  await detective.page.press('input[aria-label="Message"]', "Enter");
-  await host.page.waitForSelector(`text=${boss.name} est suspect.`);
-
-  // The dead victim cannot talk in the village.
-  assert.equal(await victim.page.locator('input[aria-label="Message"]').isDisabled(), true);
+  await host.page.waitForSelector("text=النقاش مفتوح", { timeout: 15000 });
+  await say(detective, `${wolf.name} هو المستذئب!`);
+  await host.page.waitForSelector(`text=${wolf.name} هو المستذئب!`);
+  assert.equal(await victim.page.locator(MESSAGE).isDisabled(), true);
   log("dead player muted in village ✓");
   await shot(players[4].page, "5-discussion-mobile");
 
-  await host.page.click("text=⏭️ Passer au vote"); // the host keeps this power even when dead
+  await host.page.click("text=⏭️ الانتقال إلى التصويت"); // the host keeps this power even when dead
 
   // ---------------------------------------------------------- vote
   const living = players.filter((p) => p !== victim);
-  await living[0].page.waitForSelector("text=Qui doit quitter la ville ?");
-  for (const voter of living.filter((p) => p !== boss)) {
-    await card(voter.page, boss.name).click();
-    await voter.page.click("text=Confirmer le vote");
+  await living[0].page.waitForSelector("text=من يجب أن يغادر القرية؟");
+  for (const voter of living.filter((p) => p !== wolf)) {
+    await card(voter.page, wolf.name).click();
+    await voter.page.click("text=تأكيد التصويت");
   }
-  await shot(host.page, "6-vote");
+  await shot(living[0].page, "6-vote");
   // With fast test timers the vote may already be closed: the majority still wins.
-  if (await boss.page.locator("text=Qui doit quitter la ville ?").count()) {
-    const bossTarget = living.find((p) => p !== boss);
-    await card(boss.page, bossTarget.name).click({ timeout: 5000 }).catch(() => {});
-    await boss.page.click("text=Confirmer le vote", { timeout: 5000 }).catch(() => {});
+  if (await wolf.page.locator("text=من يجب أن يغادر القرية؟").count()) {
+    const target = living.find((p) => p !== wolf);
+    await card(wolf.page, target.name).click({ timeout: 5000 }).catch(() => {});
+    await wolf.page.click("text=تأكيد التصويت", { timeout: 5000 }).catch(() => {});
   }
 
   // ---------------------------------------------------------- end
-  await host.page.waitForSelector("text=La ville a gagné", { timeout: 15000 });
-  log("city wins after voting out the Parrain ✓");
+  await host.page.waitForSelector("text=فاز القرويون", { timeout: 15000 });
+  log("villagers win after voting out the werewolf ✓");
   await shot(host.page, "7-end");
 
-  await host.page.click("text=Nouvelle partie");
-  await host.page.waitForSelector("text=La ville se réveille");
+  await host.page.click("text=لعبة جديدة");
+  await host.page.waitForSelector("text=القرية تستيقظ");
   log("restart -> back to lobby ✓");
 
   console.log("\nE2E PASSED");

@@ -33,20 +33,20 @@ export function avatar(player, size = "md") {
 }
 
 export const PHASE_INFO = {
-  [PHASES.LOBBY]: { label: "Salon", icon: "🏙️" },
-  [PHASES.ROLE_REVEAL]: { label: "Distribution des rôles", icon: "🎭" },
-  [PHASES.NIGHT]: { label: "Nuit", icon: "🌙" },
-  [PHASES.DAWN]: { label: "Aube", icon: "🌅" },
-  [PHASES.DISCUSSION]: { label: "Débat", icon: "💬" },
-  [PHASES.VOTE]: { label: "Vote", icon: "🗳️" },
-  [PHASES.VERDICT]: { label: "Verdict", icon: "⚖️" },
-  [PHASES.ENDED]: { label: "Fin de partie", icon: "🏆" },
+  [PHASES.LOBBY]: { label: "الردهة", icon: "🏡" },
+  [PHASES.ROLE_REVEAL]: { label: "توزيع الأدوار", icon: "🎭" },
+  [PHASES.NIGHT]: { label: "الليل", icon: "🌙" },
+  [PHASES.DAWN]: { label: "الفجر", icon: "🌅" },
+  [PHASES.DISCUSSION]: { label: "النقاش", icon: "💬" },
+  [PHASES.VOTE]: { label: "التصويت", icon: "🗳️" },
+  [PHASES.VERDICT]: { label: "الحكم", icon: "⚖️" },
+  [PHASES.ENDED]: { label: "نهاية اللعبة", icon: "🏆" },
 };
 
 export function teamChip(team) {
-  return team === "mafia"
-    ? h("span", { class: "chip bg-blood-500/15 text-blood-400" }, "Mafia")
-    : h("span", { class: "chip bg-sky-500/15 text-sky-300" }, "Ville");
+  return team === "wolves"
+    ? h("span", { class: "chip bg-blood-500/15 text-blood-400" }, "المستذئبون")
+    : h("span", { class: "chip bg-sky-500/15 text-sky-300" }, "القرويون");
 }
 
 // ------------------------------------------------------------- countdown
@@ -56,7 +56,7 @@ export function teamChip(team) {
  * `serverNow` corrects the difference between the server and browser clocks.
  */
 export function countdown() {
-  const el = h("span", { class: "font-display text-2xl font-extrabold tabular-nums text-gold-300" }, "--:--");
+  const el = h("span", { class: "font-display text-2xl font-extrabold tabular-nums text-gold-300", dir: "ltr" }, "--:--");
   let endsAt = null;
   let offset = 0;
 
@@ -99,7 +99,7 @@ export function toast(text, level = "info") {
 }
 
 /** Shows a modal dialog. Returns a function that closes it. */
-export function modal({ title, body, actionLabel = "Compris" }) {
+export function modal({ title, body, actionLabel = "فهمت" }) {
   const root = document.getElementById("modal-root");
   const close = () => {
     document.removeEventListener("keydown", onKey);

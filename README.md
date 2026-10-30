@@ -1,6 +1,6 @@
-# Mafia: Shadow Conflict
+# Loup-Garou — المستذئبون
 
-Jeu de Mafia (famille Loup-Garou) multijoueur en temps réel : chaque joueur joue depuis son propre navigateur, le serveur décide de tout.
+Jeu de Loup-Garou multijoueur en temps réel, interface en arabe : chaque joueur joue depuis son propre navigateur, le serveur décide de tout.
 
 **Stack :** Node.js · Express · Socket.IO (WebSocket) · Vanilla JS en modules ES · Tailwind CSS.
 
@@ -16,7 +16,7 @@ npm start                 # http://localhost:3000
 Le serveur écoute sur `0.0.0.0` : il accepte tous les appareils du réseau, pas seulement l'ordinateur qui le lance. Au démarrage, il affiche les adresses à partager :
 
 ```
-Mafia: Shadow Conflict est lancé !
+🐺 Loup-Garou — اللعبة تعمل!
   Sur cet ordinateur : http://localhost:3000
   Pour les autres joueurs (même Wi-Fi) :
     http://192.168.1.24:3000
@@ -44,39 +44,33 @@ Pour tester seul avec moins d'onglets : `MIN_PLAYERS=3 npm start` (chaque **ongl
 
 Le CSS compilé (`public/css/app.css`) est déjà dans le dépôt. Après avoir changé des classes Tailwind : `npm run build:css` (ou `npm run watch:css` pendant le développement).
 
-## Règles par défaut
+## Règles par défaut (Loup-Garou)
 
-**Joueurs :** 5 à 30 (maximum réglable avec `MAX_PLAYERS`). Rôles selon le nombre de joueurs (`server/roles.js` → `buildRoleDeck`) :
+Deux équipes : **les Loups-Garous** (المستذئبون) et **les Villageois** (القرويون). L'interface est en **arabe**, de droite à gauche.
 
-| Joueurs | Mafia | Ville |
+**Joueurs :** 5 à 30 (maximum réglable avec `MAX_PLAYERS`). Rôles selon le nombre de joueurs (`server/roles.js` → `buildRoleDeck`) : 1 loup-garou pour 4 joueurs (au moins 1), un Détective, un Docteur, et le reste en Villageois.
+
+| Joueurs | Loups-Garous | Villageois |
 | --- | --- | --- |
-| 5–7 | Parrain | Détective, Médecin (+ Espion à 7), Citoyens |
-| 8–11 | Parrain, Mafieux | Détective, Médecin, Espion, Garde du corps, Citoyens |
-| 12–15 | Parrain, 2 Mafieux | idem |
-| 16–19 | Parrain, 3 Mafieux | idem |
-| 20–23 | Parrain, 4 Mafieux | idem |
-| 24–30 | Parrain, 5 à 6 Mafieux | idem |
+| 5–7 | 1 | Détective, Docteur, Villageois |
+| 8–11 | 2 | idem |
+| 12–15 | 3 | idem |
+| 20–23 | 5 | idem |
+| 28–30 | 7 | idem |
 
-Règle générale : 1 membre de la Mafia pour 4 joueurs.
-
-À 10 joueurs, on retrouve exactement la distribution du starter.
-
-| Rôle | Pouvoir de nuit |
-| --- | --- |
-| 🎩 Parrain | choisit la victime (son choix est final) et peut kidnapper un joueur : celui-ci ne peut ni parler ni voter le lendemain. Le Détective le voit innocent. |
-| 🔫 Mafieux | propose une victime ; décide seul si le Parrain est mort |
-| 🔍 Détective | apprend si un joueur est Mafieux (le Parrain paraît innocent) |
-| 💉 Médecin | sauve un joueur (lui-même possible), jamais le même deux nuits de suite |
-| 🕵️ Espion | apprend si un joueur est le Parrain |
-| 🛡️ Garde du corps | protège un autre joueur ; si la Mafia l'attaque, le Garde meurt à sa place |
-| 🏠 Citoyen | aucun |
+| Rôle (nom affiché) | Équipe | Pouvoir de nuit |
+| --- | --- | --- |
+| 🐺 Loup-Garou (مستذئب) | Loups | choisit une victime avec les autres loups ; la victime est le joueur le plus choisi (égalité : le premier choisi). Les loups se reconnaissent et ont un chat privé la nuit. |
+| 🔍 Détective (المحقق) | Village | découvre en secret si un joueur est loup-garou |
+| 💉 Docteur (الطبيب) | Village | protège un joueur (lui-même possible), jamais le même deux nuits de suite |
+| 🧑‍🌾 Villageois (قروي) | Village | aucun ; discute et vote |
 
 **Déroulement :** salon → révélation des rôles (8 s) → nuit → aube (7 s) → débat → vote → verdict (7 s) → nuit… Les durées de nuit, débat et vote sont réglables par l'hôte.
 
 - La nuit se termine quand tous les acteurs **connectés** ont choisi, sinon à la fin du chrono.
 - Le vote est public. Le joueur avec strictement le plus de voix est éliminé ; **égalité ou aucun vote = personne**.
 - Si un acteur ne joue pas, le chrono fait avancer la partie : un joueur absent ne bloque jamais la ville.
-- **Victoire :** la Ville gagne quand il n'y a plus de Mafia ; la Mafia gagne quand elle est au moins aussi nombreuse que les autres vivants.
+- **Victoire :** les Villageois gagnent quand il n'y a plus de loup-garou ; les Loups-Garous gagnent quand ils sont au moins aussi nombreux que les autres vivants.
 - Les rôles des morts sont révélés (désactivable dans les réglages).
 
 **Déconnexion :** rafraîchir la page ou perdre le réseau ne fait pas perdre sa place (identifiant de session secret, gardé par onglet). Dans le salon, une place est libérée après 30 s d'absence. « Quitter » pendant une partie compte comme une mort. Si l'hôte part, le badge passe au joueur connecté suivant.
@@ -165,12 +159,11 @@ MIN_PLAYERS=3 PORT=3101 npm start
 BASE_URL=http://localhost:3101 node tests/e2e/protocol.mjs    # 22 cas invalides ou hors ordre
 ```
 
-`fullGame.mjs` vérifie : nom en double refusé, chat du salon (HTML affiché en texte), lancement bloqué tant que tout le monde n'est pas prêt, chat Mafia invisible pour les autres, résultat privé du Détective, mort de la nuit, rechargement de page sans perte de rôle, mort muet au village, vote, victoire de la Ville, retour au salon. Un joueur joue sur un écran de téléphone (390 px).
+`fullGame.mjs` vérifie : nom en double refusé, chat du salon (HTML affiché en texte), lancement bloqué tant que tout le monde n'est pas prêt, chat des loups invisible pour les autres, le Détective démasque le loup en privé, mort de la nuit, rechargement de page sans perte de rôle, mort muet au village, vote, victoire des Villageois, retour au salon. Un joueur joue sur un écran de téléphone (390 px).
 
 ## Corrigé par rapport au starter
 
-- Garde du corps : protéger la bonne cible tuait le Garde **et** la victime. Maintenant seul le Garde meurt.
+- Le jeu suit maintenant les règles du Loup-Garou (Loups-Garous, Détective, Docteur, Villageois). Les rôles propres à la Mafia du starter (Parrain, Espion, Garde du corps, kidnapping) ont été retirés.
 - Une déconnexion ou un joueur inactif bloquait la partie pour toujours. Maintenant il y a des chronos, et les absents ne sont pas attendus.
-- Rafraîchir la page faisait perdre sa place. Maintenant la session est reprise.
-- Les Mafieux ne connaissaient pas leurs complices ; il n'y avait ni écran de jeu, ni vote, ni chat.
-- Le message de fin de vote était perdu, le Médecin ne pouvait jamais se soigner, et le Parrain pouvait kidnapper un complice.
+- Rafraîchir la page faisait perdre sa place. Maintenant la session est reprise, et l'hôte garde son rôle d'hôte.
+- Les membres de l'équipe secrète ne se connaissaient pas ; il n'y avait ni écran de jeu, ni vote, ni chat.

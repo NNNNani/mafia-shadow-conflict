@@ -1,12 +1,12 @@
-// Home screen: create a city or join one with its code.
+// Home screen: create a village or join one with its code.
 import { LIMITS } from "/shared/constants.js";
 import { h } from "../ui/dom.js";
 import { busy } from "../ui/components.js";
 
 const INTRO = [
-  ["🌙", "La nuit", "La Mafia choisit une victime. Le Médecin, le Garde, le Détective et l'Espion agissent en secret."],
-  ["💬", "Le jour", "Le village découvre les morts, débat dans le chat et cherche les menteurs."],
-  ["🗳️", "Le vote", "Chacun vote. Le plus désigné est éliminé, et une égalité épargne tout le monde."],
+  ["🌙", "الليل", "يختار المستذئبون ضحية، ويتحقق المحقق من هوية لاعب، ويحمي الطبيب أحد اللاعبين."],
+  ["☀️", "النهار", "يُعلَن من مات، ثم يتناقش اللاعبون ويتبادلون الاتهامات في الدردشة."],
+  ["🗳️", "التصويت", "يصوّت الجميع لإقصاء مشتبه به. في حالة التعادل لا يُقصى أحد."],
 ];
 
 export function homeScreen(root, { api }) {
@@ -14,11 +14,11 @@ export function homeScreen(root, { api }) {
 
   const nameInput = h("input", {
     id: "playerName", class: "input", maxlength: String(LIMITS.NAME_MAX),
-    placeholder: "Ex. Don Vito", autocomplete: "nickname", required: true,
+    placeholder: "مثال: ياسين", autocomplete: "nickname", required: true, dir: "auto",
   });
   const codeInput = h("input", {
-    id: "roomCode", class: "input font-display uppercase tracking-[0.4em]", maxlength: String(LIMITS.CODE_LENGTH),
-    placeholder: "A1B2C3", autocomplete: "off", value: presetCode.toUpperCase(),
+    id: "roomCode", class: "input text-center font-display uppercase tracking-[0.4em]", maxlength: String(LIMITS.CODE_LENGTH),
+    placeholder: "A1B2C3", autocomplete: "off", value: presetCode.toUpperCase(), dir: "ltr",
   });
   const error = h("p", { class: "min-h-5 text-sm text-blood-400", role: "alert" });
 
@@ -29,14 +29,14 @@ export function homeScreen(root, { api }) {
   function readName() {
     const name = nameInput.value.trim();
     if (!name) {
-      error.textContent = "Entre ton nom d'abord.";
+      error.textContent = "أدخل اسمك أولاً.";
       nameInput.focus();
     }
     return name;
   }
 
-  const createButton = h("button", { type: "button", class: "btn-primary w-full py-3" }, "Créer une ville");
-  const joinButton = h("button", { type: "submit", class: "btn-secondary w-full py-3" }, "Rejoindre");
+  const createButton = h("button", { type: "button", class: "btn-primary w-full py-3" }, "إنشاء قرية");
+  const joinButton = h("button", { type: "submit", class: "btn-secondary w-full py-3" }, "انضمام");
 
   createButton.addEventListener("click", () => {
     const name = readName();
@@ -46,7 +46,7 @@ export function homeScreen(root, { api }) {
   const joinForm = h(
     "form",
     { class: "space-y-3" },
-    h("label", { class: "label", for: "roomCode" }, "Code de la ville"),
+    h("label", { class: "label", for: "roomCode" }, "رمز القرية"),
     codeInput,
     joinButton
   );
@@ -55,7 +55,7 @@ export function homeScreen(root, { api }) {
     const name = readName();
     if (!name) return;
     if (codeInput.value.length !== LIMITS.CODE_LENGTH) {
-      error.textContent = "Le code fait 6 caractères.";
+      error.textContent = "الرمز يتكوّن من 6 خانات.";
       return codeInput.focus();
     }
     busy(joinButton, () => api.joinRoom(codeInput.value, name));
@@ -68,14 +68,14 @@ export function homeScreen(root, { api }) {
       h(
         "section",
         { class: "animate-rise" },
-        h("p", { class: "eyebrow" }, "Une ville. Des secrets. Un traître ?"),
+        h("p", { class: "eyebrow" }, "قرية واحدة. أسرار كثيرة. من هو الذئب؟"),
         h(
           "h1",
-          { class: "mt-4 font-display text-5xl font-extrabold leading-[1.05] text-slate-50 sm:text-6xl" },
-          "Shadow ",
-          h("span", { class: "bg-gradient-to-r from-gold-200 to-gold-500 bg-clip-text text-transparent" }, "Conflict")
+          { class: "mt-4 font-display text-5xl font-bold leading-[1.3] text-slate-50 sm:text-6xl" },
+          "لعبة ",
+          h("span", { class: "bg-gradient-to-l from-gold-200 to-gold-500 bg-clip-text text-transparent" }, "المستذئبين")
         ),
-        h("p", { class: "mt-5 max-w-md text-lg text-slate-400" }, "La nuit cache la vérité. Le jour révèle les suspects. Joue à plusieurs, chacun sur son écran."),
+        h("p", { class: "mt-5 max-w-md text-lg text-slate-400" }, "الليل يُخفي الحقيقة، والنهار يكشف المشتبه بهم. العب مع أصدقائك، كلٌّ من شاشته."),
         h(
           "ul",
           { class: "mt-8 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3" },
@@ -92,13 +92,13 @@ export function homeScreen(root, { api }) {
       ),
       h(
         "section",
-        { class: "card animate-rise space-y-5 p-6 sm:p-8", "aria-label": "Entrer en ville" },
-        h("div", {}, h("label", { class: "label", for: "playerName" }, "Ton nom"), nameInput),
+        { class: "card animate-rise space-y-5 p-6 sm:p-8", "aria-label": "الدخول إلى القرية" },
+        h("div", {}, h("label", { class: "label", for: "playerName" }, "اسمك"), nameInput),
         createButton,
         h(
           "div",
-          { class: "flex items-center gap-3 text-xs uppercase tracking-widest text-slate-500" },
-          h("span", { class: "h-px flex-1 bg-white/10" }), "ou", h("span", { class: "h-px flex-1 bg-white/10" })
+          { class: "flex items-center gap-3 text-xs text-slate-500" },
+          h("span", { class: "h-px flex-1 bg-white/10" }), "أو", h("span", { class: "h-px flex-1 bg-white/10" })
         ),
         joinForm,
         error

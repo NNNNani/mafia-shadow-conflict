@@ -3,7 +3,7 @@
 import crypto from "node:crypto";
 import { CHANNELS, DAY_PHASES, GAME_PHASES, LIMITS, PHASES } from "../shared/constants.js";
 import { CHAT_HISTORY_MAX, CHAT_RATE } from "./config.js";
-import { isMafia } from "./roles.js";
+import { isWolf } from "./roles.js";
 import { GameError } from "./rooms.js";
 
 /** Can this player receive messages of this channel? */
@@ -13,8 +13,8 @@ export function canRead(room, player, channel) {
     case CHANNELS.LOBBY:
     case CHANNELS.VILLAGE:
       return true;
-    case CHANNELS.MAFIA:
-      return Boolean(player.role) && player.alive && isMafia(player);
+    case CHANNELS.WOLVES:
+      return Boolean(player.role) && player.alive && isWolf(player);
     case CHANNELS.DEAD:
       return Boolean(player.role) && !player.alive;
     default:
@@ -28,20 +28,19 @@ export function writeBlocker(room, player, channel) {
     case CHANNELS.LOBBY:
       return [PHASES.LOBBY, PHASES.ENDED].includes(room.phase)
         ? null
-        : "Le salon est fermé pendant la partie.";
+        : "الردهة مغلقة أثناء اللعب.";
     case CHANNELS.VILLAGE:
-      if (!DAY_PHASES.includes(room.phase)) return "Le village dort : on ne parle que le jour.";
-      if (!player.alive) return "Les morts ne parlent plus au village.";
-      if (player.silenced) return "Tu as été kidnappé : silence jusqu'à ce soir.";
+      if (!DAY_PHASES.includes(room.phase)) return "القرية نائمة: الكلام في النهار فقط.";
+      if (!player.alive) return "الموتى لا يتكلمون في القرية.";
       return null;
-    case CHANNELS.MAFIA:
-      if (!canRead(room, player, channel)) return "Canal réservé à la Mafia vivante.";
-      return room.phase === PHASES.NIGHT ? null : "La Mafia ne se parle que la nuit.";
+    case CHANNELS.WOLVES:
+      if (!canRead(room, player, channel)) return "قناة خاصة بالذئاب الأحياء.";
+      return room.phase === PHASES.NIGHT ? null : "الذئاب يتحدثون في الليل فقط.";
     case CHANNELS.DEAD:
-      if (!canRead(room, player, channel)) return "Canal réservé aux morts.";
-      return GAME_PHASES.includes(room.phase) ? null : "La partie est terminée.";
+      if (!canRead(room, player, channel)) return "قناة خاصة بالموتى.";
+      return GAME_PHASES.includes(room.phase) ? null : "انتهت اللعبة.";
     default:
-      return "Canal inconnu.";
+      return "قناة غير معروفة.";
   }
 }
 
@@ -76,8 +75,8 @@ export function addPlayerMessage(room, player, channel, rawText) {
   if (blocker) throw new GameError(blocker);
 
   const text = cleanMessage(rawText);
-  if (!text) throw new GameError("Message vide.");
-  if (isRateLimited(player, Date.now())) throw new GameError("Doucement ! Attends quelques secondes.");
+  if (!text) throw new GameError("الرسالة فارغة.");
+  if (isRateLimited(player, Date.now())) throw new GameError("على مهلك! انتظر بضع ثوانٍ.");
 
   return store(room, {
     id: crypto.randomUUID(),
@@ -113,6 +112,6 @@ export function historyFor(room, player) {
 /** Empties the in-game channels (used when a new game starts). */
 export function clearGameChannels(room) {
   room.chat[CHANNELS.VILLAGE] = [];
-  room.chat[CHANNELS.MAFIA] = [];
+  room.chat[CHANNELS.WOLVES] = [];
   room.chat[CHANNELS.DEAD] = [];
 }

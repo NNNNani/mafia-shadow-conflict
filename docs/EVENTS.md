@@ -17,7 +17,7 @@ Chaque événement client → serveur reçoit **toujours** une réponse :
 
 ```js
 { ok: true, data }        // accepté
-{ ok: false, error }      // refusé, message en français affichable tel quel
+{ ok: false, error }      // refusé, message en arabe affichable tel quel
 ```
 
 Une requête invalide ne modifie **rien** et ne fait jamais planter le serveur (`safe()` dans `server/handlers.js`).
@@ -34,9 +34,9 @@ Une requête invalide ne modifie **rien** et ne fait jamais planter le serveur (
 | `player:ready` | joueur, en salon | `{ ready }` | phase salon | `room:state` à tous |
 | `game:start` | hôte | `{}` | salon, ≥ `MIN_PLAYERS`, tous connectés et prêts | rôles distribués, phase `roleReveal` |
 | `game:restart` | hôte | `{}` | phase `ended` | retour au salon avec les mêmes joueurs |
-| `night:action` | joueur vivant avec un pouvoir | `{ targetId, kidnapId? }` | phase nuit, cible vivante, règles du rôle (`validateNightAction`) | `room:state` ; la nuit se termine quand tous les acteurs connectés ont choisi |
+| `night:action` | joueur vivant avec un pouvoir | `{ targetId }` | phase nuit, cible vivante, règles du rôle (`validateNightAction`) | `room:state` ; la nuit se termine quand tous les acteurs connectés ont choisi |
 | `day:skip` | hôte | `{}` | phase `discussion` | passe directement au vote |
-| `vote:cast` | joueur vivant non kidnappé | `{ targetId }` (`null` = retirer) | phase vote, cible vivante, pas soi-même | `room:state` (votes publics) ; le vote se termine quand tous les votants connectés ont voté |
+| `vote:cast` | joueur vivant | `{ targetId }` (`null` = retirer) | phase vote, cible vivante, pas soi-même | `room:state` (votes publics) ; le vote se termine quand tous les votants connectés ont voté |
 | `chat:send` | voir règles du chat | `{ channel, text }` | canal autorisé, 1–300 caractères, 5 messages / 5 s | `chat:message` aux seuls lecteurs du canal |
 
 ## Serveur → client
@@ -45,8 +45,8 @@ Une requête invalide ne modifie **rien** et ne fait jamais planter le serveur (
 | --- | --- | --- |
 | `room:state` | chaque joueur, **individuellement** | vue personnalisée (`server/views.js`) : joueurs (rôle seulement si autorisé), phase, `phaseEndsAt`, `serverNow`, votes publics, journal, et `me` (mon rôle, mes cibles possibles, mes résultats, mes droits de chat) |
 | `chat:message` | joueurs autorisés à lire le canal | `{ id, channel, kind, author, text, ts }` |
-| `chat:history` | un joueur (arrivée, reconnexion, mort, nouvelle partie) | `{ lobby: [], village: [], mafia: [], dead: [], system: [] }` |
-| `night:result` | Détective ou Espion seulement | `{ playerId, title, text, round }` |
+| `chat:history` | un joueur (arrivée, reconnexion, mort, nouvelle partie) | `{ lobby: [], village: [], wolves: [], dead: [], system: [] }` |
+| `night:result` | Détective seulement | `{ playerId, title, text, round }` |
 | `notice` | un joueur | `{ text, level }` (ex. session ouverte dans un autre onglet) |
 
 Il n'y a pas d'événement `timer:updated` : le serveur envoie l'heure de fin (`phaseEndsAt`) et son heure (`serverNow`), le navigateur fait le décompte. Moins de trafic, et pas de dérive.
@@ -56,8 +56,8 @@ Il n'y a pas d'événement `timer:updated` : le serveur envoie l'heure de fin (`
 | Canal | Qui lit | Qui écrit | Quand |
 | --- | --- | --- | --- |
 | `lobby` (Salon) | tous | tous | salon et fin de partie |
-| `village` | tous (les morts lisent en spectateurs) | vivants non kidnappés | aube, débat, vote, verdict |
-| `mafia` | Mafia **vivante** uniquement | Mafia vivante | nuit (historique lisible le jour) |
+| `village` | tous (les morts lisent en spectateurs) | vivants | aube, débat, vote, verdict |
+| `wolves` | loups-garous **vivants** uniquement | loups-garous vivants | nuit (historique lisible le jour) |
 | `dead` (Cimetière) | morts | morts | pendant la partie |
 | `system` | tous | serveur seulement | toujours |
 

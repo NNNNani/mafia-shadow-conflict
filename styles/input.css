@@ -41,14 +41,15 @@
     @apply w-full rounded-xl border border-white/10 bg-night-950/70 px-4 py-2.5 text-slate-100
       placeholder:text-slate-500 focus:border-gold-400/60;
   }
+  /* No letter-spacing on Arabic text: it breaks the joins between letters. */
   .label {
-    @apply mb-1.5 block text-xs font-semibold uppercase tracking-widest text-slate-400;
+    @apply mb-1.5 block text-xs font-semibold text-slate-400;
   }
   .chip {
     @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold;
   }
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.25em] text-gold-400;
+    @apply text-xs font-semibold text-gold-400;
   }
   .scroll-thin { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.15) transparent; }
 }

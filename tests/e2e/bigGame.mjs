@@ -13,9 +13,9 @@ const browser = await chromium.launch();
 try {
   const host = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
   await host.goto(BASE_URL);
-  await host.fill("#playerName", "Hôte");
-  await host.click("text=Créer une ville");
-  await host.waitForSelector("text=La ville se réveille");
+  await host.fill("#playerName", "المضيف");
+  await host.click("text=إنشاء قرية");
+  await host.waitForSelector("text=القرية تستيقظ");
   const code = (await host.locator("strong.font-display").first().innerText()).trim();
 
   // The bots live in a second page: one Socket.IO connection each.
@@ -48,18 +48,18 @@ try {
   await shot(host, "big-1-lobby");
 
   await host.waitForFunction(() => {
-    const b = [...document.querySelectorAll("button")].find((x) => x.textContent.includes("Lancer la partie"));
+    const b = [...document.querySelectorAll("button")].find((x) => x.textContent.includes("ابدأ اللعبة"));
     return b && !b.disabled;
   });
-  await host.click("text=🚀 Lancer la partie");
-  await host.waitForSelector("text=Nuit · tour 1", { timeout: 20000 });
+  await host.click("text=🚀 ابدأ اللعبة");
+  await host.waitForSelector("text=الليل · الجولة 1", { timeout: 20000 });
   await shot(host, "big-2-night");
   console.log("• game started ✓");
 
-  await host.waitForSelector("text=Fin de partie", { timeout: 240000 });
+  await host.waitForSelector("text=نهاية اللعبة", { timeout: 240000 });
   const banner = await host.locator("h1").first().innerText();
   const roles = await host.locator("ul li").allInnerTexts();
-  assert.ok(/a gagné/.test(banner));
+  assert.ok(/فاز/.test(banner));
   console.log(`• ${banner} ✓ (${roles.length} entries on the end screen)`);
   await shot(host, "big-3-end");
   console.log("\nBIG GAME PASSED");

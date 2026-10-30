@@ -47,7 +47,7 @@ export class RoomStore {
   /** Creates a room with its host. Returns { room, player }. */
   create(rawName) {
     const name = cleanName(rawName);
-    if (!name) throw new GameError("Entre ton nom d'abord.");
+    if (!name) throw new GameError("أدخل اسمك أولاً.");
 
     const room = {
       code: this.#newCode(),
@@ -81,15 +81,15 @@ export class RoomStore {
   /** Adds a player to an existing lobby. Returns { room, player }. */
   join(rawCode, rawName) {
     const name = cleanName(rawName);
-    if (!name) throw new GameError("Entre ton nom d'abord.");
+    if (!name) throw new GameError("أدخل اسمك أولاً.");
 
     const room = this.get(rawCode);
-    if (!room) throw new GameError("Aucune ville avec ce code.");
-    if (room.phase !== PHASES.LOBBY) throw new GameError("La partie a déjà commencé.");
-    if (room.players.length >= MAX_PLAYERS) throw new GameError("La ville est complète.");
+    if (!room) throw new GameError("لا توجد قرية بهذا الرمز.");
+    if (room.phase !== PHASES.LOBBY) throw new GameError("اللعبة بدأت بالفعل.");
+    if (room.players.length >= MAX_PLAYERS) throw new GameError("القرية ممتلئة.");
 
     const taken = room.players.some((p) => p.name.toLowerCase() === name.toLowerCase());
-    if (taken) throw new GameError("Ce nom est déjà pris dans cette ville.");
+    if (taken) throw new GameError("هذا الاسم مستخدم في هذه القرية.");
 
     return { room, player: this.#addPlayer(room, name) };
   }
@@ -144,7 +144,6 @@ export class RoomStore {
       ready: false,
       role: null,
       alive: true,
-      silenced: false,
       death: null,
       results: [],
       chatTimes: [],

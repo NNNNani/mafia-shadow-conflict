@@ -1,7 +1,7 @@
 // Pure game rules. No sockets, no timers: every function reads or changes a
 // `room` object and returns plain data. This makes the rules easy to unit-test.
 import { PHASES, TEAMS } from "../shared/constants.js";
-import { ROLES, isMafia, roleInfo } from "./roles.js";
+import { ROLES, isWolf, roleInfo } from "./roles.js";
 
 // ---------------------------------------------------------------- helpers
 
@@ -19,7 +19,6 @@ function aliveWithRole(room, roleId) {
 
 function kill(room, player, cause) {
   player.alive = false;
-  player.silenced = false;
   player.death = { round: room.round, cause };
 }
 
@@ -30,7 +29,6 @@ export function assignRoles(room, shuffledDeck) {
   room.players.forEach((player, index) => {
     player.role = shuffledDeck[index];
     player.alive = true;
-    player.silenced = false;
     player.death = null;
     player.results = [];
   });
@@ -43,12 +41,11 @@ export function assignRoles(room, shuffledDeck) {
   room.winner = null;
 }
 
-/** Called when a new night begins: kidnapping only lasts one day. */
+/** Called when a new night begins. */
 export function prepareNight(room) {
   room.round += 1;
   room.nightActions = {};
   room.votes = {};
-  room.players.forEach((p) => (p.silenced = false));
 }
 
 // ---------------------------------------------------------------- night
@@ -64,44 +61,28 @@ export function nightActors(room) {
 
 /**
  * Checks a night action. Returns an error message, or null when it is valid.
- * action = { targetId, kidnapId? }
+ * action = { targetId }
  */
 export function validateNightAction(room, actor, action) {
-  if (room.phase !== PHASES.NIGHT) return "Ce n'est pas la nuit.";
-  if (!actor.alive) return "Les morts ne peuvent pas agir.";
+  if (room.phase !== PHASES.NIGHT) return "ليس الوقت ليلاً.";
+  if (!actor.alive) return "الموتى لا يستطيعون التصرف.";
 
   const ability = abilityOf(actor);
-  if (!ability) return "Ton rôle n'a pas d'action de nuit.";
+  if (!ability) return "دورك ليست له قدرة ليلية.";
 
   const target = findPlayer(room, action?.targetId);
-  if (!target || !target.alive) return "Choisis un joueur vivant.";
+  if (!target || !target.alive) return "اختر لاعباً حياً.";
 
-  if (ability === "kill" && isMafia(target)) {
-    return "La Mafia ne peut pas viser un des siens.";
-  }
+  if (ability === "kill" && isWolf(target)) return "لا يمكن للذئاب مهاجمة ذئب مثلهم.";
   if (ability === "heal" && target.id === room.lastHealTargetId) {
-    return "Tu ne peux pas soigner la même personne deux nuits de suite.";
+    return "لا يمكنك حماية الشخص نفسه ليلتين متتاليتين.";
   }
-  if (["protect", "investigate", "spy"].includes(ability) && target.id === actor.id) {
-    return "Tu ne peux pas te choisir toi-même.";
-  }
-
-  if (action.kidnapId) {
-    if (actor.role !== "boss") return "Seul le Parrain peut kidnapper.";
-    const kidnapped = findPlayer(room, action.kidnapId);
-    if (!kidnapped || !kidnapped.alive || isMafia(kidnapped)) {
-      return "Tu ne peux pas kidnapper ce joueur.";
-    }
-  }
+  if (ability === "investigate" && target.id === actor.id) return "لا يمكنك التحقيق مع نفسك.";
   return null;
 }
 
 export function recordNightAction(room, actor, action) {
-  room.nightActions[actor.id] = {
-    targetId: action.targetId,
-    kidnapId: actor.role === "boss" ? action.kidnapId || null : null,
-    at: Date.now(),
-  };
+  room.nightActions[actor.id] = { targetId: action.targetId, at: Date.now() };
 }
 
 /**
@@ -115,16 +96,13 @@ export function isNightComplete(room) {
 }
 
 /**
- * The Mafia victim: the Parrain's choice if he is alive and chose,
- * otherwise the target most chosen by the other Mafia members.
+ * The werewolves' victim: the player chosen by the most werewolves.
+ * On a tie, the target that was chosen first wins.
  */
-export function chooseMafiaTarget(room) {
-  const boss = aliveWithRole(room, "boss");
-  if (boss && room.nightActions[boss.id]) return room.nightActions[boss.id].targetId;
-
+export function chooseWolfTarget(room) {
   const tally = new Map();
   room.players
-    .filter((p) => p.alive && isMafia(p) && room.nightActions[p.id])
+    .filter((p) => p.alive && isWolf(p) && room.nightActions[p.id])
     .sort((a, b) => room.nightActions[a.id].at - room.nightActions[b.id].at)
     .forEach((p) => {
       const targetId = room.nightActions[p.id].targetId;
@@ -151,62 +129,33 @@ function actionOfRole(room, roleId) {
 
 /**
  * Applies every night action and returns what happened.
- * Order: Mafia attack -> Médecin heal -> Garde du corps -> deaths -> kidnapping -> investigations.
+ * Order: werewolf attack -> doctor protection -> death -> detective result.
  */
 export function resolveNight(room) {
   const heal = actionOfRole(room, "doctor");
-  const guard = actionOfRole(room, "bodyguard");
   const investigation = actionOfRole(room, "detective");
-  const spying = actionOfRole(room, "spy");
-  const boss = actionOfRole(room, "boss");
 
-  const report = { round: room.round, deaths: [], attackBlocked: false, kidnappedId: null };
+  const report = { round: room.round, deaths: [], attackBlocked: false };
   const privateResults = [];
 
-  const targetId = chooseMafiaTarget(room);
+  const targetId = chooseWolfTarget(room);
   if (targetId) {
-    if (heal?.targetId === targetId) {
-      report.attackBlocked = true;
-    } else if (guard && guard.targetId === targetId) {
-      // The bodyguard takes the bullet for the person he protects.
-      report.attackBlocked = true;
-      report.deaths.push({ playerId: guard.actor.id, cause: "bodyguard" });
-    } else {
-      report.deaths.push({ playerId: targetId, cause: "mafia" });
-    }
+    if (heal?.targetId === targetId) report.attackBlocked = true;
+    else report.deaths.push({ playerId: targetId, cause: "wolves" });
   }
 
   const dyingIds = new Set(report.deaths.map((d) => d.playerId));
-
   if (investigation && !dyingIds.has(investigation.actor.id)) {
     const target = findPlayer(room, investigation.targetId);
-    const looksMafia = target.role === "mafia"; // the Parrain looks innocent
     privateResults.push({
       playerId: investigation.actor.id,
-      title: "Résultat de l'enquête",
-      text: `${target.name} est ${looksMafia ? "membre de la Mafia" : "innocent"}.`,
-      round: room.round,
-    });
-  }
-
-  if (spying && !dyingIds.has(spying.actor.id)) {
-    const target = findPlayer(room, spying.targetId);
-    privateResults.push({
-      playerId: spying.actor.id,
-      title: "Rapport d'espionnage",
-      text: `${target.name} ${target.role === "boss" ? "EST le Parrain" : "n'est pas le Parrain"}.`,
+      title: "نتيجة التحقيق",
+      text: isWolf(target) ? `${target.name} مستذئب! 🐺` : `${target.name} بريء، ليس مستذئباً.`,
       round: room.round,
     });
   }
 
   report.deaths.forEach(({ playerId, cause }) => kill(room, findPlayer(room, playerId), cause));
-
-  const kidnapped = boss?.kidnapId && findPlayer(room, boss.kidnapId);
-  if (kidnapped?.alive) {
-    kidnapped.silenced = true;
-    report.kidnappedId = kidnapped.id;
-  }
-
   privateResults.forEach((r) => findPlayer(room, r.playerId).results.push(r));
 
   room.lastHealTargetId = heal ? heal.targetId : null;
@@ -218,19 +167,18 @@ export function resolveNight(room) {
 // ---------------------------------------------------------------- day vote
 
 export function canVote(player) {
-  return player.alive && !player.silenced;
+  return player.alive;
 }
 
 /** targetId === null withdraws the vote. Returns an error message or null. */
 export function validateVote(room, voter, targetId) {
-  if (room.phase !== PHASES.VOTE) return "Le vote n'est pas ouvert.";
-  if (!voter.alive) return "Les morts ne votent pas.";
-  if (voter.silenced) return "Tu as été kidnappé : tu ne peux pas voter aujourd'hui.";
+  if (room.phase !== PHASES.VOTE) return "التصويت غير مفتوح الآن.";
+  if (!voter.alive) return "الموتى لا يصوّتون.";
   if (targetId === null) return null;
 
   const target = findPlayer(room, targetId);
-  if (!target || !target.alive) return "Vote pour un joueur vivant.";
-  if (target.id === voter.id) return "Tu ne peux pas voter contre toi-même.";
+  if (!target || !target.alive) return "صوّت على لاعب حي.";
+  if (target.id === voter.id) return "لا يمكنك التصويت ضد نفسك.";
   return null;
 }
 
@@ -239,7 +187,7 @@ export function recordVote(room, voter, targetId) {
   else room.votes[voter.id] = targetId;
 }
 
-/** True when every connected player allowed to vote has voted. */
+/** True when every connected living player has voted. */
 export function isVoteComplete(room) {
   return room.players
     .filter((p) => canVote(p) && p.connected)
@@ -288,14 +236,17 @@ export function forfeit(room, player) {
   delete room.votes[player.id];
 }
 
-/** Returns TEAMS.CITY, TEAMS.MAFIA or null if the game goes on. */
+/**
+ * Returns TEAMS.VILLAGE when no werewolf is left, TEAMS.WOLVES when the
+ * werewolves equal or outnumber the other living players, otherwise null.
+ */
 export function checkWinner(room) {
   const alive = alivePlayers(room);
-  const mafia = alive.filter(isMafia).length;
-  const others = alive.length - mafia;
+  const wolves = alive.filter(isWolf).length;
+  const others = alive.length - wolves;
 
-  if (mafia === 0) return TEAMS.CITY;
-  if (mafia >= others) return TEAMS.MAFIA;
+  if (wolves === 0) return TEAMS.VILLAGE;
+  if (wolves >= others) return TEAMS.WOLVES;
   return null;
 }
 

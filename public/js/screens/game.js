@@ -5,14 +5,12 @@ import { PHASE_INFO, avatar, busy, countdown, teamChip } from "../ui/components.
 import { createChatPanel } from "../ui/chatPanel.js";
 
 const ABILITY_TEXT = {
-  kill: ["🎯 Choisis la victime", "Ton choix est partagé avec la Mafia. Le Parrain a le dernier mot."],
-  heal: ["💉 Qui soigner cette nuit ?", "Ce joueur survivra à une attaque. Pas deux nuits de suite la même personne."],
-  protect: ["🛡️ Qui protéger ?", "Si la Mafia attaque ce joueur, tu meurs à sa place."],
-  investigate: ["🔍 Sur qui enquêter ?", "Tu sauras s'il est de la Mafia (le Parrain paraît innocent)."],
-  spy: ["🕵️ Qui espionner ?", "Tu sauras si ce joueur est le Parrain."],
+  kill: ["🐺 اختر ضحية الليلة", "اختيارك يظهر لباقي الذئاب. الضحية هي اللاعب الذي يختاره أكبر عدد من الذئاب."],
+  heal: ["💉 من تريد أن تحمي الليلة؟", "إذا هاجمته الذئاب سينجو. لا يمكنك حماية الشخص نفسه ليلتين متتاليتين."],
+  investigate: ["🔍 مع من تريد التحقيق؟", "ستعرف سرّاً هل هذا اللاعب مستذئب أم لا."],
 };
 
-const DEATH_CAUSE = { mafia: "Assassiné", bodyguard: "Mort en protégeant", vote: "Éliminé au vote", left: "A quitté" };
+const DEATH_CAUSE = { wolves: "افترسته الذئاب", vote: "أُقصي بالتصويت", left: "غادر اللعبة" };
 
 const nameOf = (room, id) => room.players.find((p) => p.id === id)?.name ?? "?";
 
@@ -20,33 +18,34 @@ const nameOf = (room, id) => room.players.find((p) => p.id === id)?.name ?? "?";
 
 function statusChips(room, player) {
   const chips = [];
-  if (player.id === room.me.id) chips.push(h("span", { class: "chip bg-gold-400/15 text-gold-300" }, "Toi"));
-  if (player.isHost) chips.push(h("span", { class: "chip bg-white/5 text-slate-300", title: "Hôte" }, "👑"));
-  if (!player.connected) chips.push(h("span", { class: "chip bg-white/5 text-slate-400", title: "Déconnecté" }, "📡"));
-  if (player.silenced) chips.push(h("span", { class: "chip bg-violet-500/20 text-violet-200" }, "🤐 Kidnappé"));
-  if (player.role && player.id !== room.me.id) chips.push(h("span", { class: "chip bg-blood-500/15 text-blood-400" }, `${player.role.emoji} ${player.role.name}`));
+  if (player.id === room.me.id) chips.push(h("span", { class: "chip bg-gold-400/15 text-gold-300" }, "أنت"));
+  if (player.isHost) chips.push(h("span", { class: "chip bg-white/5 text-slate-300", title: "المضيف" }, "👑"));
+  if (!player.connected) chips.push(h("span", { class: "chip bg-white/5 text-slate-400", title: "غير متصل" }, "📡"));
+  if (player.role && player.id !== room.me.id) {
+    chips.push(h("span", { class: "chip bg-blood-500/15 text-blood-400" }, `${player.role.emoji} ${player.role.name}`));
+  }
   return chips;
 }
 
-/** Extra line under the name: votes received, or Mafia picks at night. */
+/** Extra line under the name: votes received, or the wolves' picks at night. */
 function cardFootnote(room, player) {
   if (room.phase === PHASES.VOTE && room.voteCounts?.[player.id]) {
     const voters = Object.entries(room.votes).filter(([, t]) => t === player.id).map(([v]) => nameOf(room, v));
-    return h("p", { class: "mt-1 truncate text-xs text-gold-300" }, `🗳️ ${room.voteCounts[player.id]} · ${voters.join(", ")}`);
+    return h("p", { class: "mt-1 truncate text-xs text-gold-300" }, `🗳️ ${room.voteCounts[player.id]} · ${voters.join("، ")}`);
   }
   const picks = room.me.night?.teamPicks;
   if (picks) {
     const pickers = Object.entries(picks).filter(([, t]) => t === player.id).map(([p]) => nameOf(room, p));
-    if (pickers.length) return h("p", { class: "mt-1 truncate text-xs text-blood-400" }, `🎯 ${pickers.join(", ")}`);
+    if (pickers.length) return h("p", { class: "mt-1 truncate text-xs text-blood-400" }, `🎯 ${pickers.join("، ")}`);
   }
   if (!player.alive && player.death) {
-    return h("p", { class: "mt-1 text-xs text-slate-500" }, `${DEATH_CAUSE[player.death.cause]} · tour ${player.death.round}`);
+    return h("p", { class: "mt-1 text-xs text-slate-500" }, `${DEATH_CAUSE[player.death.cause]} · الجولة ${player.death.round}`);
   }
   return null;
 }
 
 function playerCard(room, player, { selectable, selected, onSelect }) {
-  const base = "card flex w-full items-center gap-3 p-3 text-left transition";
+  const base = "card flex w-full items-center gap-3 p-3 text-start transition";
   const look = !player.alive
     ? "opacity-45 grayscale"
     : selected
@@ -79,14 +78,14 @@ export function gameScreen(root, ctx) {
   const timer = countdown();
 
   // Local, not-yet-confirmed choices. Reset when the phase changes.
-  let ui = { phaseKey: "", mode: "target", target: null, kidnap: null, vote: null, showRole: true };
+  let ui = { phaseKey: "", target: null, vote: null, showRole: true };
 
   const phaseIcon = h("span", { class: "text-3xl", "aria-hidden": "true" });
   const phaseTitle = h("h1", { class: "font-display text-2xl font-bold text-slate-50" });
   const phaseSub = h("p", { class: "text-sm text-slate-400" });
   const actionPanel = h("section", { class: "card p-5", "aria-live": "polite" });
-  const playersGrid = h("ul", { class: "grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3", "aria-label": "Joueurs" });
-  const roleBox = h("section", { class: "card p-5", "aria-label": "Mon rôle" });
+  const playersGrid = h("ul", { class: "grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3", "aria-label": "اللاعبون" });
+  const roleBox = h("section", { class: "card p-5", "aria-label": "دوري" });
   const journalList = h("ol", { class: "scroll-thin max-h-64 space-y-1.5 overflow-y-auto text-sm" });
 
   root.append(
@@ -101,11 +100,11 @@ export function gameScreen(root, ctx) {
           { class: "card flex items-center gap-4 p-5" },
           phaseIcon,
           h("div", { class: "flex-1" }, phaseTitle, phaseSub),
-          h("div", { class: "text-right" }, h("p", { class: "label mb-0" }, "Temps"), timer.el)
+          h("div", { class: "text-end" }, h("p", { class: "label mb-0" }, "الوقت المتبقي"), timer.el)
         ),
         actionPanel,
         playersGrid,
-        h("section", { class: "card p-5" }, h("h2", { class: "label" }, "Journal de la ville"), journalList)
+        h("section", { class: "card p-5" }, h("h2", { class: "label" }, "سجل القرية"), journalList)
       ),
       h("aside", { class: "space-y-6" }, roleBox, chat.el)
     )
@@ -122,49 +121,39 @@ export function gameScreen(root, ctx) {
   function select(id) {
     const room = store.get().room;
     if (room.phase === PHASES.VOTE) ui.vote = id;
-    else if (ui.mode === "kidnap") ui.kidnap = ui.kidnap === id ? null : id;
     else ui.target = id;
     rerender();
   }
+
+  const title = (text) => h("h2", { class: "font-display text-xl font-bold text-gold-300" }, text);
 
   // ----------------------------------------------------------- panels
 
   function nightPanel(room) {
     const night = room.me.night;
-    if (!room.me.alive) return [h("p", { class: "text-slate-300" }, "🪦 Tu observes la nuit depuis l'au-delà.")];
-    if (!night) return [h("p", { class: "text-lg text-slate-300" }, "😴 Tu dors… La ville est plongée dans le noir."), h("p", { class: "mt-1 text-sm text-slate-500" }, "Les rôles spéciaux agissent en secret.")];
+    if (!room.me.alive) return [h("p", { class: "text-slate-300" }, "🪦 تراقب الليل من العالم الآخر.")];
+    if (!night) {
+      return [
+        h("p", { class: "text-lg text-slate-300" }, "😴 أنت نائم… القرية غارقة في الظلام."),
+        h("p", { class: "mt-1 text-sm text-slate-500" }, "الأدوار الخاصة تتحرك في الخفاء."),
+      ];
+    }
 
-    const [title, help] = ABILITY_TEXT[night.ability];
-    const isBoss = room.me.role.id === "boss";
+    const [heading, help] = ABILITY_TEXT[night.ability];
     const sent = night.myAction;
-    const confirm = h("button", { class: "btn-primary", disabled: !ui.target }, sent ? "Modifier mon choix" : "Confirmer");
-    confirm.addEventListener("click", () => busy(confirm, () => api.nightAction(ui.target, ui.kidnap)));
-
-    const modeButtons = isBoss
-      ? h(
-          "div",
-          { class: "mt-3 flex gap-2" },
-          ["target", "kidnap"].map((mode) =>
-            h("button", {
-              class: `btn px-3 py-1.5 text-xs ${ui.mode === mode ? "bg-white/10 text-gold-300" : "text-slate-400 hover:bg-white/5"}`,
-              onClick: () => { ui.mode = mode; rerender(); },
-            }, mode === "target" ? "🎯 Victime" : "🤐 Kidnapping (optionnel)")
-          )
-        )
-      : null;
+    const confirm = h("button", { class: "btn-primary", disabled: !ui.target }, sent ? "تغيير اختياري" : "تأكيد");
+    confirm.addEventListener("click", () => busy(confirm, () => api.nightAction(ui.target)));
 
     return [
-      h("h2", { class: "font-display text-xl font-bold text-gold-300" }, title),
+      title(heading),
       h("p", { class: "mt-1 text-sm text-slate-400" }, help),
-      modeButtons,
       h(
         "div",
         { class: "mt-4 flex flex-wrap items-center gap-3" },
-        h("p", { class: "text-sm text-slate-300" }, "Cible : ", h("strong", { class: "text-slate-50" }, ui.target ? nameOf(room, ui.target) : "—"),
-          isBoss ? [" · Kidnapping : ", h("strong", { class: "text-slate-50" }, ui.kidnap ? nameOf(room, ui.kidnap) : "aucun")] : null),
+        h("p", { class: "text-sm text-slate-300" }, "الهدف: ", h("strong", { class: "text-slate-50" }, ui.target ? nameOf(room, ui.target) : "—")),
         confirm
       ),
-      sent ? h("p", { class: "mt-3 text-sm text-emerald-300" }, `✓ Choix envoyé : ${nameOf(room, sent.targetId)}. Tu peux le changer tant que la nuit dure.`) : null,
+      sent ? h("p", { class: "mt-3 text-sm text-emerald-300" }, `✓ تم إرسال اختيارك: ${nameOf(room, sent.targetId)}. يمكنك تغييره ما دام الليل مستمراً.`) : null,
     ];
   }
 
@@ -175,38 +164,35 @@ export function gameScreen(root, ctx) {
           const p = room.players.find((x) => x.id === playerId);
           return h("li", { class: "text-lg" }, `☠️ ${p.name}`, p.role ? ` — ${p.role.emoji} ${p.role.name}` : "");
         })
-      : [h("li", { class: "text-lg text-emerald-300" }, night?.attackBlocked ? "🛡️ Une attaque a été déjouée. Personne n'est mort." : "😮‍💨 Personne n'est mort cette nuit.")];
-    if (night?.kidnappedId) lines.push(h("li", { class: "text-violet-200" }, `🤐 ${nameOf(room, night.kidnappedId)} a été kidnappé.`));
-    return [h("h2", { class: "font-display text-xl font-bold text-gold-300" }, "Le soleil se lève sur la ville…"), h("ul", { class: "mt-3 space-y-1" }, lines)];
+      : [h("li", { class: "text-lg text-emerald-300" }, night?.attackBlocked ? "💉 أنقذ الطبيب الضحية! لم يمت أحد." : "😮‍💨 لم يمت أحد هذه الليلة.")];
+    return [title("الشمس تشرق على القرية…"), h("ul", { class: "mt-3 space-y-1" }, lines)];
   }
 
   function discussionPanel(room) {
-    const skip = room.me.isHost ? h("button", { class: "btn-secondary mt-4" }, "⏭️ Passer au vote") : null;
+    const skip = room.me.isHost ? h("button", { class: "btn-secondary mt-4" }, "⏭️ الانتقال إلى التصويت") : null;
     skip?.addEventListener("click", () => busy(skip, api.skipDiscussion));
     return [
-      h("h2", { class: "font-display text-xl font-bold text-gold-300" }, "Débat ouvert"),
-      h("p", { class: "mt-1 text-slate-400" }, room.me.silenced ? "🤐 Tu as été kidnappé : tu ne peux ni parler ni voter aujourd'hui." : "Partage tes soupçons dans le chat du village. Qui ment ?"),
+      title("النقاش مفتوح"),
+      h("p", { class: "mt-1 text-slate-400" }, "شارك شكوكك في دردشة القرية. من هو المستذئب؟"),
       skip,
     ];
   }
 
   function votePanel(room) {
-    if (!room.me.canVote) {
-      const why = !room.me.alive ? "Les morts ne votent pas." : "🤐 Kidnappé : pas de vote aujourd'hui.";
-      return [h("h2", { class: "font-display text-xl font-bold text-gold-300" }, "Le village vote"), h("p", { class: "mt-1 text-slate-400" }, why)];
-    }
-    const confirm = h("button", { class: "btn-primary", disabled: !ui.vote || ui.vote === room.me.myVote }, "Confirmer le vote");
+    if (!room.me.canVote) return [title("القرية تصوّت"), h("p", { class: "mt-1 text-slate-400" }, "الموتى لا يصوّتون.")];
+
+    const confirm = h("button", { class: "btn-primary", disabled: !ui.vote || ui.vote === room.me.myVote }, "تأكيد التصويت");
     confirm.addEventListener("click", () => busy(confirm, () => api.vote(ui.vote)));
-    const withdraw = room.me.myVote ? h("button", { class: "btn-ghost" }, "Retirer mon vote") : null;
+    const withdraw = room.me.myVote ? h("button", { class: "btn-ghost" }, "سحب صوتي") : null;
     withdraw?.addEventListener("click", () => busy(withdraw, async () => { ui.vote = null; await api.vote(null); }));
 
     return [
-      h("h2", { class: "font-display text-xl font-bold text-gold-300" }, "🗳️ Qui doit quitter la ville ?"),
-      h("p", { class: "mt-1 text-sm text-slate-400" }, "Clique sur un joueur puis confirme. Égalité = personne n'est éliminé."),
+      title("🗳️ من يجب أن يغادر القرية؟"),
+      h("p", { class: "mt-1 text-sm text-slate-400" }, "اضغط على لاعب ثم أكّد. في حالة التعادل لا يُقصى أحد."),
       h(
         "div",
         { class: "mt-4 flex flex-wrap items-center gap-3" },
-        h("p", { class: "text-sm text-slate-300" }, "Ton vote : ", h("strong", { class: "text-slate-50" }, room.me.myVote ? nameOf(room, room.me.myVote) : "aucun")),
+        h("p", { class: "text-sm text-slate-300" }, "صوتك: ", h("strong", { class: "text-slate-50" }, room.me.myVote ? nameOf(room, room.me.myVote) : "لا أحد")),
         confirm,
         withdraw
       ),
@@ -215,28 +201,28 @@ export function gameScreen(root, ctx) {
 
   function verdictPanel(room) {
     const v = room.lastVerdict;
-    let text = "⚖️ Aucun vote : personne n'est éliminé.";
+    let text = "⚖️ لا أصوات: لم يُقصَ أحد.";
     if (v?.eliminatedId) {
       const p = room.players.find((x) => x.id === v.eliminatedId);
-      text = `⚖️ ${p.name} est éliminé${p.role ? ` — c'était ${p.role.emoji} ${p.role.name}` : ""}.`;
-    } else if (v?.tie) text = "⚖️ Égalité : personne n'est éliminé aujourd'hui.";
-    return [h("h2", { class: "font-display text-xl font-bold text-gold-300" }, "Verdict"), h("p", { class: "mt-2 text-lg" }, text), h("p", { class: "mt-1 text-sm text-slate-500" }, "La nuit va tomber…")];
+      text = `⚖️ تم إقصاء ${p.name}${p.role ? ` — كان ${p.role.emoji} ${p.role.name}` : ""}.`;
+    } else if (v?.tie) text = "⚖️ تعادل في الأصوات: لم يُقصَ أحد اليوم.";
+    return [title("الحكم"), h("p", { class: "mt-2 text-lg" }, text), h("p", { class: "mt-1 text-sm text-slate-500" }, "سيحلّ الليل قريباً…")];
   }
 
   function revealPanel(room) {
     const role = room.me.role;
-    const mates = room.players.filter((p) => p.id !== room.me.id && p.role?.team === "mafia");
+    const mates = room.players.filter((p) => p.id !== room.me.id && p.role?.team === "wolves");
     return [
       h(
         "div",
         { class: "animate-flip text-center" },
-        h("p", { class: "eyebrow" }, "Ton rôle secret"),
+        h("p", { class: "eyebrow" }, "دورك السري"),
         h("div", { class: "mt-3 text-6xl", "aria-hidden": "true" }, role.emoji),
-        h("h2", { class: "mt-2 font-display text-3xl font-extrabold text-slate-50" }, role.name),
+        h("h2", { class: "mt-2 font-display text-3xl font-bold text-slate-50" }, role.name),
         h("div", { class: "mt-2" }, teamChip(role.team)),
         h("p", { class: "mx-auto mt-3 max-w-md text-slate-300" }, role.description),
-        mates.length ? h("p", { class: "mt-3 text-sm text-blood-400" }, `Tes complices : ${mates.map((p) => p.name).join(", ")}`) : null,
-        h("p", { class: "mt-4 text-xs text-slate-500" }, "Ne montre pas ton écran. La nuit commence bientôt.")
+        mates.length ? h("p", { class: "mt-3 text-sm text-blood-400" }, `رفاقك الذئاب: ${mates.map((p) => p.name).join("، ")}`) : null,
+        h("p", { class: "mt-4 text-xs text-slate-500" }, "لا تُظهر شاشتك لأحد. الليل سيحلّ قريباً.")
       ),
     ];
   }
@@ -251,30 +237,30 @@ export function gameScreen(root, ctx) {
       [PHASES.VERDICT]: verdictPanel,
     };
     const deadBanner = !room.me.alive
-      ? h("p", { class: "mb-4 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-400" }, "🪦 Tu es mort. Tu peux suivre la partie et parler au cimetière.")
+      ? h("p", { class: "mb-4 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-400" }, "🪦 لقد متّ. يمكنك متابعة اللعبة والتحدث في المقبرة.")
       : null;
     mount(actionPanel, deadBanner, (panels[room.phase] || (() => []))(room));
   }
 
   function renderRoleBox(room) {
     const role = room.me.role;
-    const toggle = h("button", { class: "btn-ghost px-3 py-1 text-xs" }, ui.showRole ? "Masquer" : "Afficher");
+    const toggle = h("button", { class: "btn-ghost px-3 py-1 text-xs" }, ui.showRole ? "إخفاء" : "إظهار");
     toggle.addEventListener("click", () => { ui.showRole = !ui.showRole; rerender(); });
 
     const results = room.me.results.length
       ? h("ul", { class: "mt-4 space-y-2 border-t border-white/10 pt-4" },
           [...room.me.results].reverse().map((r) =>
-            h("li", { class: "text-sm" }, h("span", { class: "text-xs text-slate-500" }, `Nuit ${r.round} · ${r.title}`), h("p", { class: "text-slate-100" }, r.text))))
+            h("li", { class: "text-sm" }, h("span", { class: "text-xs text-slate-500" }, `الليلة ${r.round} · ${r.title}`), h("p", { class: "text-slate-100" }, r.text))))
       : null;
 
     mount(
       roleBox,
-      h("div", { class: "flex items-center justify-between" }, h("h2", { class: "label mb-0" }, "Mon rôle"), toggle),
+      h("div", { class: "flex items-center justify-between" }, h("h2", { class: "label mb-0" }, "دوري"), toggle),
       ui.showRole
         ? h("div", { class: "mt-3 flex gap-3" },
             h("span", { class: "text-4xl", "aria-hidden": "true" }, role.emoji),
             h("div", {}, h("p", { class: "font-display text-lg font-bold text-slate-50" }, role.name, " "), teamChip(role.team), h("p", { class: "mt-1 text-sm text-slate-400" }, role.description)))
-        : h("p", { class: "mt-3 text-sm text-slate-500" }, "Rôle masqué."),
+        : h("p", { class: "mt-3 text-sm text-slate-500" }, "الدور مخفي."),
       ui.showRole ? results : null
     );
   }
@@ -283,8 +269,8 @@ export function gameScreen(root, ctx) {
     let selectableIds = [];
     let selectedId = null;
     if (room.phase === PHASES.NIGHT && room.me.night) {
-      selectableIds = ui.mode === "kidnap" ? room.me.night.kidnapIds || [] : room.me.night.targetIds;
-      selectedId = ui.mode === "kidnap" ? ui.kidnap : ui.target;
+      selectableIds = room.me.night.targetIds;
+      selectedId = ui.target;
     } else if (room.phase === PHASES.VOTE && room.me.canVote) {
       selectableIds = room.players.filter((p) => p.alive && p.id !== room.me.id).map((p) => p.id);
       selectedId = ui.vote;
@@ -310,21 +296,21 @@ export function gameScreen(root, ctx) {
     const room = state.room;
     const phaseKey = `${room.phase}:${room.round}`;
     if (phaseKey !== ui.phaseKey) {
-      const action = room.me.night?.myAction;
-      ui = { ...ui, phaseKey, mode: "target", target: action?.targetId ?? null, kidnap: action?.kidnapId ?? null, vote: room.me.myVote };
+      ui = { ...ui, phaseKey, target: room.me.night?.myAction?.targetId ?? null, vote: room.me.myVote };
     }
 
     const info = PHASE_INFO[room.phase];
     phaseIcon.textContent = info.icon;
-    phaseTitle.textContent = room.round ? `${info.label} · tour ${room.round}` : info.label;
+    phaseTitle.textContent = room.round ? `${info.label} · الجولة ${room.round}` : info.label;
     const alive = room.players.filter((p) => p.alive).length;
-    phaseSub.textContent = `${alive} joueur(s) en vie sur ${room.players.length} · ville ${room.code}`;
+    phaseSub.textContent = `${alive} لاعب على قيد الحياة من أصل ${room.players.length} · القرية ${room.code}`;
 
     timer.update(room);
     renderActionPanel(room);
     renderPlayers(room);
     renderRoleBox(room);
-    mount(journalList, [...room.journal].reverse().map((e) => h("li", { class: "text-slate-300" }, h("span", { class: "mr-2 text-xs text-slate-500" }, `T${e.round}`), e.text)));
+    mount(journalList, [...room.journal].reverse().map((e) =>
+      h("li", { class: "text-slate-300" }, h("span", { class: "me-2 text-xs text-slate-500" }, `ج${e.round}`), e.text)));
   }
 
   return { update, destroy: () => timer.destroy() };
