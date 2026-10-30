@@ -19,19 +19,25 @@ Pour tester seul avec moins d'onglets : `MIN_PLAYERS=3 npm start` (chaque **ongl
 | --- | --- | --- |
 | `PORT` | 3000 | port HTTP |
 | `MIN_PLAYERS` | 5 | joueurs minimum pour lancer |
+| `MAX_PLAYERS` | 30 | joueurs maximum par ville |
 | `TIME_SCALE` | 1 | multiplie tous les chronos (0.25 = 4× plus rapide, pour les tests) |
 
 Le CSS compilé (`public/css/app.css`) est déjà dans le dépôt. Après avoir changé des classes Tailwind : `npm run build:css` (ou `npm run watch:css` pendant le développement).
 
 ## Règles par défaut
 
-**Joueurs :** 5 à 12. Rôles selon le nombre de joueurs (`server/roles.js` → `buildRoleDeck`) :
+**Joueurs :** 5 à 30 (maximum réglable avec `MAX_PLAYERS`). Rôles selon le nombre de joueurs (`server/roles.js` → `buildRoleDeck`) :
 
 | Joueurs | Mafia | Ville |
 | --- | --- | --- |
 | 5–7 | Parrain | Détective, Médecin (+ Espion à 7), Citoyens |
 | 8–11 | Parrain, Mafieux | Détective, Médecin, Espion, Garde du corps, Citoyens |
-| 12 | Parrain, 2 Mafieux | idem |
+| 12–15 | Parrain, 2 Mafieux | idem |
+| 16–19 | Parrain, 3 Mafieux | idem |
+| 20–23 | Parrain, 4 Mafieux | idem |
+| 24–30 | Parrain, 5 à 6 Mafieux | idem |
+
+Règle générale : 1 membre de la Mafia pour 4 joueurs.
 
 À 10 joueurs, on retrouve exactement la distribution du starter.
 
@@ -85,6 +91,7 @@ tests/
   engine.test.js          tests unitaires des règles (npm test)
   e2e/fullGame.mjs        partie complète avec 5 navigateurs
   e2e/protocol.mjs        données invalides et événements dans le désordre
+  e2e/bigGame.mjs         partie à 22 joueurs (1 navigateur + 21 bots)
 docs/EVENTS.md            contrat d'événements et règles du chat
 ```
 

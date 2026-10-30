@@ -42,7 +42,7 @@ export function lobbyScreen(root, ctx) {
   const copyButton = h("button", { class: "btn-ghost px-3 py-1.5 text-xs" }, "Copier le lien");
   const countText = h("span", { class: "text-sm text-slate-400" });
   const progress = h("div", { class: "h-full rounded-full bg-gradient-to-r from-violet-500 to-gold-400 transition-all" });
-  const playersList = h("ul", { class: "grid gap-3 sm:grid-cols-2" });
+  const playersList = h("ul", { class: "grid gap-3 sm:grid-cols-2 xl:grid-cols-3" });
   const statusText = h("p", { class: "text-sm text-slate-400", role: "status" });
   const readyButton = h("button", { class: "btn-secondary w-full py-3" });
   const startButton = h("button", { class: "btn-primary w-full py-3" }, "🚀 Lancer la partie");

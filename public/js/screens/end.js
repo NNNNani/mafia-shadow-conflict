@@ -16,7 +16,7 @@ export function endScreen(root, ctx) {
   const chat = createChatPanel(ctx);
   const banner = h("section", { class: "card animate-flip p-8 text-center" });
   const stats = h("div", { class: "grid grid-cols-2 gap-3 sm:grid-cols-4" });
-  const table = h("ul", { class: "grid gap-3 sm:grid-cols-2" });
+  const table = h("ul", { class: "grid gap-3 sm:grid-cols-2 xl:grid-cols-3" });
   const journal = h("ol", { class: "scroll-thin max-h-72 space-y-1.5 overflow-y-auto text-sm" });
   const restartButton = h("button", { class: "btn-primary w-full py-3" }, "🔁 Nouvelle partie (retour au salon)");
   const leaveButton = h("button", { class: "btn-ghost w-full" }, "Quitter la ville");

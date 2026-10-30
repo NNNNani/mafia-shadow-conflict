@@ -41,6 +41,18 @@ test("role deck: 10 players matches the original starter", () => {
   assert.equal(buildRoleDeck(12).filter((r) => r === "mafia").length, 2);
 });
 
+test("role deck: 20 to 30 players keep 1 Mafia member per 4 players", () => {
+  for (const count of [20, 24, 30]) {
+    const deck = buildRoleDeck(count);
+    const mafia = deck.filter((r) => r === "boss" || r === "mafia").length;
+    assert.equal(deck.length, count);
+    assert.equal(mafia, Math.floor(count / 4));
+    for (const role of ["boss", "detective", "doctor", "spy", "bodyguard"]) {
+      assert.equal(deck.filter((r) => r === role).length, 1, `${role} at ${count}`);
+    }
+  }
+});
+
 test("bodyguard protecting the victim dies alone; the victim survives (starter bug)", () => {
   const room = makeRoom();
   act(room, "alba", "gino");

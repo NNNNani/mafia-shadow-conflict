@@ -85,7 +85,7 @@ export function gameScreen(root, ctx) {
   const phaseTitle = h("h1", { class: "font-display text-2xl font-bold text-slate-50" });
   const phaseSub = h("p", { class: "text-sm text-slate-400" });
   const actionPanel = h("section", { class: "card p-5", "aria-live": "polite" });
-  const playersGrid = h("ul", { class: "grid gap-3 sm:grid-cols-2 xl:grid-cols-3", "aria-label": "Joueurs" });
+  const playersGrid = h("ul", { class: "grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3", "aria-label": "Joueurs" });
   const roleBox = h("section", { class: "card p-5", "aria-label": "Mon rôle" });
   const journalList = h("ol", { class: "scroll-thin max-h-64 space-y-1.5 overflow-y-auto text-sm" });
 

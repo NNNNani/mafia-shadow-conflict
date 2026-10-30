@@ -129,9 +129,10 @@ export class RoomStore {
   }
 
   #addPlayer(room, name) {
-    const usedAvatars = new Set(room.players.map((p) => p.avatar));
-    let avatar = 0;
-    while (usedAvatars.has(avatar) && avatar < AVATAR_COUNT - 1) avatar++;
+    // Pick the least used colour, so 20+ players still get varied avatars.
+    const uses = Array(AVATAR_COUNT).fill(0);
+    room.players.forEach((p) => uses[p.avatar % AVATAR_COUNT]++);
+    const avatar = uses.indexOf(Math.min(...uses));
 
     const player = {
       id: crypto.randomUUID(), // public id, visible to everyone

@@ -2,7 +2,8 @@
 
 /** Minimum players to start. Override with MIN_PLAYERS=3 to test with fewer tabs. */
 export const MIN_PLAYERS = Number(process.env.MIN_PLAYERS) || 5;
-export const MAX_PLAYERS = 12;
+/** Maximum players per city. Override with MAX_PLAYERS=40. */
+export const MAX_PLAYERS = Number(process.env.MAX_PLAYERS) || 30;
 
 /** Multiply every timer (0.1 = ten times faster). Used by automated tests. */
 export const TIME_SCALE = Number(process.env.TIME_SCALE) || 1;

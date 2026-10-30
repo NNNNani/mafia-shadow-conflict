@@ -27,7 +27,7 @@ Une requête invalide ne modifie **rien** et ne fait jamais planter le serveur (
 | Événement | Qui peut l'envoyer | Payload | Validation | Effet / diffusion |
 | --- | --- | --- | --- | --- |
 | `room:create` | tout le monde | `{ name }` | nom non vide, ≤ 20 caractères | crée la ville ; renvoie `{ code, sessionId }` ; `room:state` au créateur |
-| `room:join` | tout le monde | `{ code, name }` | ville existante, en salon, pas pleine (12), nom unique | `room:state` à tous + annonce système |
+| `room:join` | tout le monde | `{ code, name }` | ville existante, en salon, pas pleine (`MAX_PLAYERS`, 30 par défaut), nom unique | `room:state` à tous + annonce système |
 | `room:resume` | tout le monde | `{ sessionId }` | session connue | reprend la place (refresh, coupure réseau) ; `chat:history` + `room:state` |
 | `room:leave` | un joueur dans une ville | `{}` | — | salon : retiré ; en partie : compté comme mort (« a quitté la ville ») |
 | `room:settings` | hôte, en salon | `{ settings: { nightSeconds?, discussionSeconds?, voteSeconds?, revealRolesOnDeath? } }` | bornes dans `server/config.js` | `room:state` à tous |
