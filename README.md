@@ -11,13 +11,33 @@ npm install
 npm start                 # http://localhost:3000
 ```
 
-Pour jouer à plusieurs sur le même réseau, les autres ouvrent `http://<IP-de-ta-machine>:3000`.
+### Jouer en Wi-Fi (chaque joueur sur son téléphone ou son PC)
+
+Le serveur écoute sur `0.0.0.0` : il accepte tous les appareils du réseau, pas seulement l'ordinateur qui le lance. Au démarrage, il affiche les adresses à partager :
+
+```
+Mafia: Shadow Conflict est lancé !
+  Sur cet ordinateur : http://localhost:3000
+  Pour les autres joueurs (même Wi-Fi) :
+    http://192.168.1.24:3000
+```
+
+1. Tous les appareils doivent être sur **le même Wi-Fi**.
+2. L'hôte crée la ville. Dans le salon, l'encadré 📶 affiche le lien Wi-Fi avec le code (ex. `http://192.168.1.24:3000/?code=K7PQ2M`) ; le bouton **Copier le lien** copie ce lien, même si l'hôte a ouvert le jeu sur `localhost`.
+3. Les autres ouvrent ce lien : le code est déjà rempli, il suffit d'entrer son nom.
+
+Si les autres n'arrivent pas à se connecter :
+- **Windows** : au premier lancement, accepte la fenêtre du pare-feu pour Node.js en cochant « Réseaux privés ». Sinon, va dans Pare-feu Windows → Autoriser une application → Node.js.
+- **macOS** : clique sur « Autoriser » quand macOS demande si Node peut accepter des connexions entrantes.
+- Le Wi-Fi doit être en profil **privé** et non public, et certains réseaux d'école ou d'hôtel bloquent les appareils entre eux (« isolation client »). Dans ce cas, utilise le partage de connexion d'un téléphone.
+- Pour écouter seulement sur cet ordinateur : `HOST=127.0.0.1 npm start`.
 
 Pour tester seul avec moins d'onglets : `MIN_PLAYERS=3 npm start` (chaque **onglet** est un joueur différent).
 
 | Variable | Défaut | Rôle |
 | --- | --- | --- |
 | `PORT` | 3000 | port HTTP |
+| `HOST` | 0.0.0.0 | adresse d'écoute (0.0.0.0 = tout le réseau) |
 | `MIN_PLAYERS` | 5 | joueurs minimum pour lancer |
 | `MAX_PLAYERS` | 30 | joueurs maximum par ville |
 | `TIME_SCALE` | 1 | multiplie tous les chronos (0.25 = 4× plus rapide, pour les tests) |

@@ -50,8 +50,31 @@ export function lobbyScreen(root, ctx) {
   const settingsBox = h("div", { class: "space-y-3" });
   let settingsKey = "";
 
+  // Wi-Fi invite link. "localhost" only works on the host's computer, so when the
+  // host opened the game that way we ask the server for its network address.
+  const wifiLink = h("code", { class: "break-all text-sm text-gold-300" }, "…");
+  const wifiBox = h(
+    "div",
+    { class: "w-full rounded-xl border border-gold-400/20 bg-gold-400/5 px-4 py-3" },
+    h("p", { class: "text-xs text-slate-400" }, "📶 Sur le même Wi-Fi, les autres joueurs ouvrent :"),
+    wifiLink
+  );
+  let baseUrl = location.origin;
+  const inviteLink = () => `${baseUrl}/?code=${codeText.textContent}`;
+  const isLocalhost = ["localhost", "127.0.0.1", "::1", "[::1]"].includes(location.hostname);
+  if (isLocalhost) {
+    fetch("/api/network")
+      .then((res) => res.json())
+      .then(({ urls }) => {
+        if (urls[0]) baseUrl = urls[0];
+        else wifiBox.append(h("p", { class: "mt-1 text-xs text-blood-400" }, "Aucun réseau détecté : connecte cet ordinateur au Wi-Fi."));
+        wifiLink.textContent = inviteLink();
+      })
+      .catch(() => (wifiLink.textContent = inviteLink()));
+  }
+
   copyButton.addEventListener("click", async () => {
-    const link = `${location.origin}/?code=${codeText.textContent}`;
+    const link = inviteLink();
     try {
       await navigator.clipboard.writeText(link);
       toast("Lien d'invitation copié ✓", "success");
@@ -112,7 +135,8 @@ export function lobbyScreen(root, ctx) {
           "section",
           { class: "card flex flex-wrap items-center justify-between gap-4 p-6" },
           h("div", {}, h("p", { class: "eyebrow" }, "Salle d'attente"), h("h1", { class: "mt-1 font-display text-2xl font-bold text-slate-50" }, "La ville se réveille")),
-          h("div", { class: "text-right" }, h("p", { class: "label" }, "Code de la ville"), codeText, h("div", { class: "mt-2" }, copyButton))
+          h("div", { class: "text-right" }, h("p", { class: "label" }, "Code de la ville"), codeText, h("div", { class: "mt-2" }, copyButton)),
+          wifiBox
         ),
         h(
           "section",
@@ -140,6 +164,7 @@ export function lobbyScreen(root, ctx) {
       const waitingFor = room.players.filter((p) => !p.ready || !p.connected);
 
       codeText.textContent = room.code;
+      wifiLink.textContent = inviteLink();
       countText.textContent = `${count} / ${room.maxPlayers} (min. ${room.minPlayers})`;
       progress.style.width = `${Math.min(100, (count / room.maxPlayers) * 100)}%`;
       mount(playersList, room.players.map(lobbyPlayerCard));
