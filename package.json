@@ -1,11 +1,15 @@
 {
   "name": "mafia-shadow-conflict",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Jeu Mafia multijoueur en temps réel (Node.js, Socket.IO, Vanilla JS, Tailwind).",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "MIN_PLAYERS=3 node --watch server.js",
+    "build:css": "npx tailwindcss@3.4.17 -i ./styles/input.css -o ./public/css/app.css --minify",
+    "watch:css": "npx tailwindcss@3.4.17 -i ./styles/input.css -o ./public/css/app.css --watch",
+    "test": "node --test",
+    "test:e2e": "node tests/e2e/run.mjs"
   },
   "repository": {
     "type": "git",
@@ -14,7 +18,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/NNNNani/mafia-shadow-conflict/issues"
   },
@@ -22,5 +26,8 @@
   "dependencies": {
     "express": "^5.3.0",
     "socket.io": "^4.8.4"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

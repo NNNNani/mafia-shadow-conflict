@@ -1,0 +1,55 @@
+/* Source stylesheet. Compiled to public/css/app.css with: npm run build:css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { color-scheme: dark; }
+  [hidden] { display: none !important; }
+  body {
+    @apply min-h-screen bg-night-950 font-sans text-slate-200 antialiased;
+    background-image:
+      radial-gradient(1200px 600px at 50% -10%, rgba(109, 76, 186, 0.28), transparent 60%),
+      radial-gradient(800px 400px at 100% 100%, rgba(230, 189, 98, 0.08), transparent 60%);
+    background-attachment: fixed;
+  }
+  :focus-visible { @apply outline-none ring-2 ring-gold-400 ring-offset-2 ring-offset-night-900; }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-white/10 bg-night-850/80 shadow-card backdrop-blur;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+      transition duration-150 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply btn bg-gradient-to-b from-gold-300 to-gold-500 text-night-950 shadow-glow
+      hover:from-gold-200 hover:to-gold-400 active:translate-y-px;
+  }
+  .btn-secondary {
+    @apply btn border border-violet-400/30 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20;
+  }
+  .btn-ghost {
+    @apply btn border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10;
+  }
+  .btn-danger {
+    @apply btn border border-blood-500/40 bg-blood-500/10 text-blood-400 hover:bg-blood-500/20;
+  }
+  .input {
+    @apply w-full rounded-xl border border-white/10 bg-night-950/70 px-4 py-2.5 text-slate-100
+      placeholder:text-slate-500 focus:border-gold-400/60;
+  }
+  /* No letter-spacing on Arabic text: it breaks the joins between letters. */
+  .label {
+    @apply mb-1.5 block text-xs font-semibold text-slate-400;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold;
+  }
+  .eyebrow {
+    @apply text-xs font-semibold text-gold-400;
+  }
+  .scroll-thin { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.15) transparent; }
+}

@@ -1,0 +1,20 @@
+{
+  // F5 in VS Code: start the server with the debugger (breakpoints work in server/*.js).
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Lancer le serveur (debug)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/server.js",
+      "env": { "MIN_PLAYERS": "3" }
+    },
+    {
+      "name": "Tests des règles (debug)",
+      "type": "node",
+      "request": "launch",
+      "runtimeArgs": ["--test"],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
